@@ -1,0 +1,32 @@
+name: Trackaro
+options:
+  bundleIdPrefix: app.trackaro
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  TrackaroCore:
+    path: ..
+targets:
+  Trackaro:
+    type: application
+    platform: macOS
+    sources:
+      - path: Trackaro
+    dependencies:
+      - package: TrackaroCore
+        product: TrackaroCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.trackaro.Trackaro
+        PRODUCT_NAME: Trackaro
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Trackaro
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
