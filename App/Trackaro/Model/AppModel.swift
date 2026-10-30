@@ -30,6 +30,9 @@ final class AppModel {
     private(set) var user: Member?
     private(set) var rows: [ListRow] = []
     private(set) var rowsVersion = 0
+    private(set) var columns: [BoardColumn] = []
+    /// Board or list, remembered per sidebar item.
+    private(set) var layouts: [String: ViewLayout] = AppModel.loadLayouts()
     private(set) var detail: IssueDetail?
     private(set) var loadError: String?
 
@@ -74,6 +77,8 @@ final class AppModel {
     /// The issues an open picker applies to, captured when it opened so the list can change underneath.
     var pickerTargets: [String] = []
     var quickCreatePresented = false
+    /// The state a new issue starts in when created from a board column's + button.
+    var quickCreateStateId: String?
     private(set) var toast: Toast?
 
     struct Toast: Equatable, Identifiable {
@@ -92,6 +97,9 @@ final class AppModel {
     private var rowIds: [String] = []
 
     static let log = Logger(subsystem: "app.trackaro.Trackaro", category: "sync")
+    /// How long an agent's change stays flagged on its row or card.
+    static let recentAgentWindow: TimeInterval = 15 * 60
+    private static let layoutsKey = "layouts"
     static let pollInterval: Duration = .milliseconds(300)
 
     /// The database file: `TRACKARO_DATABASE` when set, which keeps development runs off real data.
@@ -161,12 +169,22 @@ final class AppModel {
                     teamIds: [teamId], stateCategories: page.categories, order: .manual, limit: TrackaroStore.maxPageSize
                 )).issues
             }
+            if notes.isEmpty {
+                let recent = Date().addingTimeInterval(-Self.recentAgentWindow)
+                for change in try store.recentChanges(by: .agent, limit: 100) where change.at >= recent {
+                    notes[change.issue.id] = "\(change.member.name) · \(RelativeTime.string(change.at))"
+                }
+            }
             let labelIds = try store.labelIds(forIssues: issues.map(\.id))
             let parents = try store.identifiers(forIssueIds: issues.compactMap(\.parentId))
-            let next = IssueRowBuilder.rows(issues, snapshot: snapshot, labelIds: labelIds, parentIdentifiers: parents, grouping: grouping, notes: notes)
-            if next != rows {
-                rows = next
-                rowIds = next.compactMap(\.issueId)
+            let rowNotes = currentItem == .agentActivity ? notes : [:]
+            let nextRows = IssueRowBuilder.rows(issues, snapshot: snapshot, labelIds: labelIds, parentIdentifiers: parents, grouping: grouping, notes: rowNotes)
+            let nextColumns = boardColumns(for: issues, snapshot: snapshot, labelIds: labelIds, parents: parents, notes: notes)
+            let nextIds = layout == .board ? nextColumns.flatMap { $0.cards.map(\.id) } : nextRows.compactMap(\.issueId)
+            if nextRows != rows || nextColumns != columns || nextIds != rowIds {
+                rows = nextRows
+                columns = nextColumns
+                rowIds = nextIds
                 rowsVersion += 1
             }
             let visible = Set(rowIds)
@@ -175,6 +193,21 @@ final class AppModel {
         } catch {
             showError(error)
         }
+    }
+
+    private func boardColumns(
+        for issues: [Issue], snapshot: WorkspaceSnapshot, labelIds: [String: [String]], parents: [String: String], notes: [String: String]
+    ) -> [BoardColumn] {
+        guard layout == .board else { return [] }
+        let items = issues.map {
+            IssueRowBuilder.item($0, snapshot: snapshot, labelIds: labelIds[$0.id] ?? [],
+                                 parentIdentifier: $0.parentId.flatMap { parents[$0] }, note: notes[$0.id])
+        }
+        if case let .team(teamId, page) = currentItem {
+            let states = snapshot.states(ofTeam: teamId).filter { page.categories?.contains($0.category) ?? true }
+            return BoardBuilder.stateColumns(items, states: states)
+        }
+        return BoardBuilder.categoryColumns(items, snapshot: snapshot)
     }
 
     private func loadDetail() {
@@ -204,6 +237,21 @@ final class AppModel {
         guard let store, let latest = try? store.latestChangeSeq(), latest != seenChangeSeq else { return }
         reloadAll()
         Self.log.info("Reloaded after external change, cursor \(latest), \(self.rowIds.count) issues")
+    }
+
+    // MARK: Layout
+
+    var layout: ViewLayout { layouts[currentItem.storageKey] ?? .list }
+
+    func toggleLayout() {
+        layouts[currentItem.storageKey] = layout == .board ? .list : .board
+        UserDefaults.standard.set(layouts.mapValues(\.rawValue), forKey: Self.layoutsKey)
+        reloadRows()
+    }
+
+    private static func loadLayouts() -> [String: ViewLayout] {
+        let stored = UserDefaults.standard.dictionary(forKey: layoutsKey) as? [String: String] ?? [:]
+        return stored.compactMapValues(ViewLayout.init(rawValue:))
     }
 
     // MARK: Selection

@@ -36,6 +36,9 @@ final class KeyboardController {
         }
 
         let typing = window.firstResponder is NSText
+        if Self.arrowKeys.contains(stroke.key), stroke.modifiers.isEmpty, window.firstResponder is NSTableView {
+            return false
+        }
         let outcome = matcher.handle(stroke, scopes: [.global, .list], typing: typing) { id in
             AppCommand(rawValue: id).map(model.canPerform) ?? false
         }
@@ -75,6 +78,9 @@ final class KeyboardController {
             return false
         }
     }
+
+    /// Plain arrows belong to whichever list has focus (the sidebar, the issue table); the board takes them otherwise.
+    private static let arrowKeys: Set<String> = ["up", "down", "left", "right"]
 
     private static func modifiers(of event: NSEvent) -> KeyStroke.Modifiers {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)

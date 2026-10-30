@@ -84,6 +84,8 @@ struct IssueListPane: View {
         Group {
             if let error = model.loadError {
                 ContentUnavailableView("Could not open the database", systemImage: "exclamationmark.triangle", description: Text(error))
+            } else if model.layout == .board, !model.columns.isEmpty {
+                BoardView()
             } else if model.rows.isEmpty {
                 ContentUnavailableView {
                     Label(model.currentItem.title(in: model.snapshot), systemImage: model.currentItem.symbol)
@@ -106,6 +108,15 @@ struct IssueListPane: View {
         .navigationSubtitle(model.rows.isEmpty ? "" : "\(model.issueCount) issues")
         .toolbar {
             ToolbarItemGroup {
+                Picker("Layout", selection: Binding(
+                    get: { model.layout },
+                    set: { value in if value != model.layout { model.perform(.toggleLayout) } }
+                )) {
+                    Label("List", systemImage: "list.bullet").tag(ViewLayout.list)
+                    Label("Board", systemImage: "rectangle.split.3x1").tag(ViewLayout.board)
+                }
+                .pickerStyle(.segmented)
+                .help("Board or list (⌘B)")
                 Button {
                     model.perform(.palette)
                 } label: {

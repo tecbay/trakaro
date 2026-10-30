@@ -41,13 +41,17 @@ extension AppModel {
             !targets.isEmpty
         case .next, .previous, .extendDown, .extendUp:
             issueCount > 0
+        case .cardUp, .cardDown, .columnLeft, .columnRight:
+            layout == .board && issueCount > 0
+        case .moveToPreviousStatus, .moveToNextStatus:
+            !targets.isEmpty
         case .undo:
             history.canUndo
         case .redo:
             history.canRedo
         case .clearSelection:
             !selection.isEmpty || cursor != nil || overlay != nil
-        case .palette, .shortcuts, .newIssue, .toggleSidebar, .toggleInspector,
+        case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
              .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog:
             true
         }
@@ -58,6 +62,7 @@ extension AppModel {
         case .palette: overlay = overlay == .palette ? nil : .palette
         case .shortcuts: overlay = overlay == .shortcuts ? nil : .shortcuts
         case .newIssue: quickCreatePresented = true
+        case .toggleLayout: toggleLayout()
         case .toggleSidebar: sidebarVisibility = sidebarVisibility == .detailOnly ? .all : .detailOnly
         case .toggleInspector: inspectorPresented.toggle()
         case .undo: undo()
@@ -67,8 +72,14 @@ extension AppModel {
         case .goIssues: goToTeam(.all)
         case .goActive: goToTeam(.active)
         case .goBacklog: goToTeam(.backlog)
-        case .next: moveCursor(by: 1)
-        case .previous: moveCursor(by: -1)
+        case .next: layout == .board ? moveCardCursor(by: 1) : moveCursor(by: 1)
+        case .previous: layout == .board ? moveCardCursor(by: -1) : moveCursor(by: -1)
+        case .cardUp: moveCardCursor(by: -1)
+        case .cardDown: moveCardCursor(by: 1)
+        case .columnLeft: moveColumnCursor(by: -1)
+        case .columnRight: moveColumnCursor(by: 1)
+        case .moveToPreviousStatus: stepStatus(by: -1)
+        case .moveToNextStatus: stepStatus(by: 1)
         case .extendDown: moveCursor(by: 1, extend: true)
         case .extendUp: moveCursor(by: -1, extend: true)
         case .toggleSelect: toggleSelection()

@@ -13,6 +13,7 @@ public struct IssueRowItem: Hashable, Sendable, Identifiable {
     public let title: String
     public let priority: Priority
     public let category: StateCategory
+    public let stateId: String
     public let stateName: String
     public let stateColor: String
     public let labels: [LabelChip]
@@ -61,6 +62,7 @@ public enum IssueRowBuilder {
             title: issue.title,
             priority: issue.priority,
             category: state?.category ?? .backlog,
+            stateId: issue.stateId,
             stateName: state?.name ?? "",
             stateColor: state?.color ?? "#95A2B3",
             labels: labelIds.compactMap { snapshot.labelsById[$0] }

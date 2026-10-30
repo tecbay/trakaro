@@ -4,9 +4,10 @@ import Foundation
 /// and the app switches over it exhaustively, so a command cannot exist without an action or a shortcut drift
 /// out of the overlay.
 public enum AppCommand: String, CaseIterable, Sendable {
-    case palette, shortcuts, newIssue, toggleSidebar, toggleInspector, undo, redo
+    case palette, shortcuts, newIssue, toggleLayout, toggleSidebar, toggleInspector, undo, redo
     case goMyIssues, goAgentActivity, goIssues, goActive, goBacklog
     case next, previous, extendDown, extendUp, toggleSelect, open, clearSelection
+    case cardUp, cardDown, columnLeft, columnRight, moveToPreviousStatus, moveToNextStatus
     case setStatus, setPriority, setAssignee, setLabels, setEstimate, assignToMe, copyIdentifier, archive
 
     public var definition: KeyCommand {
@@ -14,6 +15,7 @@ public enum AppCommand: String, CaseIterable, Sendable {
         case .palette: KeyCommand(rawValue, "Command palette", section: "General", binding: "cmd+k", worksInTextFields: true, inPalette: false)
         case .shortcuts: KeyCommand(rawValue, "Keyboard shortcuts", section: "General", binding: "?")
         case .newIssue: KeyCommand(rawValue, "New issue", section: "General", binding: "c")
+        case .toggleLayout: KeyCommand(rawValue, "Switch between board and list", section: "General", binding: "cmd+b")
         case .toggleSidebar: KeyCommand(rawValue, "Toggle sidebar", section: "General", binding: "[")
         case .toggleInspector: KeyCommand(rawValue, "Toggle details panel", section: "General", binding: "]")
         case .undo: KeyCommand(rawValue, "Undo", section: "General", binding: "cmd+z")
@@ -33,6 +35,13 @@ public enum AppCommand: String, CaseIterable, Sendable {
         case .open: KeyCommand(rawValue, "Open issue", section: "List", binding: "enter", scope: .list, inPalette: false)
         case .clearSelection: KeyCommand(rawValue, "Clear selection", section: "List", binding: "escape", scope: .list, inPalette: false)
 
+        case .cardUp: KeyCommand(rawValue, "Card above", section: "Board", binding: "up", scope: .list, inPalette: false)
+        case .cardDown: KeyCommand(rawValue, "Card below", section: "Board", binding: "down", scope: .list, inPalette: false)
+        case .columnLeft: KeyCommand(rawValue, "Column to the left", section: "Board", binding: "left", scope: .list, inPalette: false)
+        case .columnRight: KeyCommand(rawValue, "Column to the right", section: "Board", binding: "right", scope: .list, inPalette: false)
+        case .moveToPreviousStatus: KeyCommand(rawValue, "Move to previous status", section: "Board", binding: "shift+left", scope: .list)
+        case .moveToNextStatus: KeyCommand(rawValue, "Move to next status", section: "Board", binding: "shift+right", scope: .list)
+
         case .setStatus: KeyCommand(rawValue, "Change status", section: "Issue", binding: "s", scope: .list)
         case .setPriority: KeyCommand(rawValue, "Change priority", section: "Issue", binding: "p", scope: .list)
         case .setAssignee: KeyCommand(rawValue, "Assign to", section: "Issue", binding: "a", scope: .list)
@@ -47,5 +56,5 @@ public enum AppCommand: String, CaseIterable, Sendable {
     public static var catalog: [KeyCommand] { allCases.map(\.definition) }
 
     /// Section order for the shortcuts overlay.
-    public static let sections = ["General", "Navigation", "List", "Issue"]
+    public static let sections = ["General", "Navigation", "List", "Board", "Issue"]
 }

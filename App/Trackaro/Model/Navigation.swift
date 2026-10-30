@@ -36,6 +36,15 @@ enum SidebarItem: Hashable {
         }
     }
 
+    /// Stable across launches, for remembering per-view preferences.
+    var storageKey: String {
+        switch self {
+        case .myIssues: "my-issues"
+        case .agentActivity: "agent-activity"
+        case let .team(id, page): "team.\(id).\(page.rawValue)"
+        }
+    }
+
     var teamId: String? {
         if case let .team(id, _) = self { id } else { nil }
     }

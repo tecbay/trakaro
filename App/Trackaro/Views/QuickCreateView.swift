@@ -101,10 +101,14 @@ struct QuickCreateView: View {
         .padding(20)
         .frame(width: 560)
         .onAppear {
-            teamId = model.defaultTeamId ?? ""
+            let preset = model.quickCreateStateId.flatMap { model.snapshot?.statesById[$0] }
+            model.quickCreateStateId = nil
+            teamId = preset?.teamId ?? model.defaultTeamId ?? ""
+            stateId = preset?.id
             titleFocused = true
         }
-        .onChange(of: teamId) { _, _ in
+        .onChange(of: teamId) { oldValue, _ in
+            guard !oldValue.isEmpty else { return }
             stateId = nil
             labelIds = labelIds.filter { id in labels.contains { $0.id == id } }
         }
