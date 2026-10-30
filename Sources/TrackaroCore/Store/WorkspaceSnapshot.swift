@@ -75,4 +75,35 @@ extension TrackaroStore {
     }
 
     public func now() -> Date { clock() }
+
+    /// Issues most recently changed by members of one kind, newest first, with who changed each and when.
+    /// With `.agent` this is the "what did my agents do" feed.
+    public func recentChanges(by kind: MemberKind, limit: Int = 200) throws -> [RecentChange] {
+        try writer.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT changeLog.modelId AS issueId, changeLog.memberId AS memberId, changeLog.at AS at, MAX(changeLog.seq) AS seq
+                FROM changeLog JOIN member ON member.id = changeLog.memberId
+                WHERE changeLog.model = 'issue' AND member.kind = ?
+                GROUP BY changeLog.modelId
+                ORDER BY seq DESC
+                LIMIT ?
+                """, arguments: [kind.rawValue, limit])
+            let issueIds: [String] = rows.map { $0["issueId"] }
+            guard !issueIds.isEmpty else { return [] }
+            let placeholders = Array(repeating: "?", count: issueIds.count).joined(separator: ",")
+            let issues = try Issue.fetchAll(db, sql: "SELECT * FROM issue WHERE id IN (\(placeholders)) AND archivedAt IS NULL", arguments: StatementArguments(issueIds))
+            let issuesById = Dictionary(uniqueKeysWithValues: issues.map { ($0.id, $0) })
+            let members = Dictionary(uniqueKeysWithValues: try Member.fetchAll(db).map { ($0.id, $0) })
+            return rows.compactMap { row in
+                guard let issue = issuesById[row["issueId"]], let member = members[row["memberId"]] else { return nil }
+                return RecentChange(issue: issue, member: member, at: row["at"])
+            }
+        }
+    }
+}
+
+public struct RecentChange: Sendable, Equatable {
+    public let issue: Issue
+    public let member: Member
+    public let at: Date
 }

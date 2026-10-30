@@ -1,0 +1,139 @@
+import SwiftUI
+import TrackaroCore
+import TrackaroKit
+
+struct RootView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        NavigationSplitView(columnVisibility: $model.sidebarVisibility) {
+            SidebarView()
+                .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        } detail: {
+            IssueListPane()
+                .inspector(isPresented: $model.inspectorPresented) {
+                    InspectorView()
+                        .inspectorColumnWidth(min: 320, ideal: 380, max: 560)
+                }
+        }
+        .overlay {
+            if let overlay = model.overlay {
+                OverlayHost(overlay: overlay)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let toast = model.toast {
+                ToastView(toast: toast)
+                    .padding(.bottom, 18)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.12), value: model.toast)
+        .sheet(isPresented: $model.quickCreatePresented) {
+            QuickCreateView()
+        }
+        .onOpenURL { url in model.open(url) }
+        .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
+    }
+}
+
+struct SidebarView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        List(selection: $model.sidebarSelection) {
+            Section {
+                Label(SidebarItem.myIssues.title(in: model.snapshot), systemImage: SidebarItem.myIssues.symbol)
+                    .tag(SidebarItem.myIssues)
+                Label {
+                    Text("Agent activity")
+                } icon: {
+                    Image(systemName: "sparkles").foregroundStyle(Color.agent)
+                }
+                .tag(SidebarItem.agentActivity)
+            }
+            ForEach(model.snapshot?.teams.filter { $0.archivedAt == nil } ?? []) { team in
+                Section(team.name) {
+                    ForEach(SidebarItem.TeamPage.allCases, id: \.self) { page in
+                        Label(page.title, systemImage: page.symbol)
+                            .tag(SidebarItem.team(team.id, page))
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    model.perform(.newIssue)
+                } label: {
+                    Label("New issue", systemImage: "square.and.pencil")
+                }
+                .help("New issue (C)")
+            }
+        }
+    }
+}
+
+struct IssueListPane: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Group {
+            if let error = model.loadError {
+                ContentUnavailableView("Could not open the database", systemImage: "exclamationmark.triangle", description: Text(error))
+            } else if model.rows.isEmpty {
+                ContentUnavailableView {
+                    Label(model.currentItem.title(in: model.snapshot), systemImage: model.currentItem.symbol)
+                } description: {
+                    Text(model.currentItem.emptyMessage)
+                }
+            } else {
+                IssueTableView(
+                    rows: model.rows,
+                    version: model.rowsVersion,
+                    selection: model.selection,
+                    cursor: model.cursor,
+                    onSelect: { ids, cursor in model.select(ids, cursor: cursor) },
+                    onOpen: { id in model.focus(id) },
+                    onCommand: { command in model.perform(command) }
+                )
+            }
+        }
+        .navigationTitle(model.currentItem.title(in: model.snapshot))
+        .navigationSubtitle(model.rows.isEmpty ? "" : "\(model.issueCount) issues")
+        .toolbar {
+            ToolbarItemGroup {
+                Button {
+                    model.perform(.palette)
+                } label: {
+                    Label("Command palette", systemImage: "command")
+                }
+                .help("Command palette (⌘K)")
+                Button {
+                    model.perform(.toggleInspector)
+                } label: {
+                    Label("Details", systemImage: "sidebar.right")
+                }
+                .help("Toggle details (])")
+            }
+        }
+    }
+}
+
+struct ToastView: View {
+    let toast: AppModel.Toast
+
+    var body: some View {
+        Label(toast.message, systemImage: toast.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+            .font(.callout)
+            .foregroundStyle(toast.isError ? Color(nsColor: Theme.danger) : .primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(.separator))
+            .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+    }
+}

@@ -83,7 +83,8 @@ public struct CycleProgress: Sendable, Equatable {
 }
 
 extension TrackaroStore {
-    public static let maxPageSize = 200
+    /// Large enough for the app to hold a whole team in one list; the MCP layer applies its own smaller cap.
+    public static let maxPageSize = 10_000
 
     public func queryIssues(_ query: IssueQuery) throws -> IssuePage {
         let limit = min(max(query.limit, 1), Self.maxPageSize)

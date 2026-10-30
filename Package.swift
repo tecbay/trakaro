@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "TrackaroCore", targets: ["TrackaroCore"]),
         .library(name: "TrackaroMCP", targets: ["TrackaroMCP"]),
+        .library(name: "TrackaroKit", targets: ["TrackaroKit"]),
         .executable(name: "trackaro-mcp", targets: ["trackaro-mcp"]),
     ],
     dependencies: [
@@ -22,6 +23,10 @@ let package = Package(
             name: "TrackaroMCP",
             dependencies: ["TrackaroCore", .product(name: "MCP", package: "swift-sdk")]
         ),
+        .target(
+            name: "TrackaroKit",
+            dependencies: ["TrackaroCore"]
+        ),
         .executableTarget(
             name: "trackaro-mcp",
             dependencies: ["TrackaroCore", "TrackaroMCP", .product(name: "MCP", package: "swift-sdk")]
@@ -29,6 +34,10 @@ let package = Package(
         .testTarget(
             name: "TrackaroCoreTests",
             dependencies: ["TrackaroCore"]
+        ),
+        .testTarget(
+            name: "TrackaroKitTests",
+            dependencies: ["TrackaroCore", "TrackaroKit"]
         ),
         .testTarget(
             name: "TrackaroMCPTests",

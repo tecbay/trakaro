@@ -104,7 +104,7 @@ extension TrackaroStore {
             let issue = try resolveIssue(db, issueRef)
             return try Comment
                 .filter(Column("issueId") == issue.id && Column("deletedAt") == nil)
-                .order(Column("createdAt"), Column("id"))
+                .order(Column("createdAt"), Column.rowID)
                 .fetchAll(db)
         }
     }

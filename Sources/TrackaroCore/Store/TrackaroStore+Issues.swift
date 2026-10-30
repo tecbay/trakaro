@@ -33,7 +33,7 @@ extension TrackaroStore {
 
     public func activity(issueId: String) throws -> [IssueActivity] {
         try writer.read { db in
-            try IssueActivity.filter(Column("issueId") == issueId).order(Column("createdAt"), Column("id")).fetchAll(db)
+            try IssueActivity.filter(Column("issueId") == issueId).order(Column("createdAt"), Column.rowID).fetchAll(db)
         }
     }
 

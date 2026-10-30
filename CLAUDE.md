@@ -9,14 +9,18 @@ change tasks through an MCP server. Native SwiftUI over a UI-free Swift core. Lo
 Package.swift            TrackaroCore, TrackaroMCP, the trackaro-mcp executable, and their tests
 Sources/TrackaroCore     Domain model, schema, store, ordering, queries
 Sources/TrackaroMCP      MCP tools, resources, prompts (official swift-sdk, pinned exactly)
+Sources/TrackaroKit      UI logic with no UI: key bindings and chords, the command catalog, fuzzy matching,
+                         undo history, list rows, activity text, deep links
 Sources/trackaro-mcp     stdio entry point
 Tests/TrackaroCoreTests  Swift Testing suites, mirroring Sources
+Tests/TrackaroKitTests   Tests for TrackaroKit
 Tests/TrackaroMCPTests   Tests through a real MCP Client over InMemoryTransport (see Support/Harness.swift)
 App/project.yml          XcodeGen spec for the macOS app (the .xcodeproj is generated, not committed)
-App/Trackaro             SwiftUI app
+App/Trackaro             SwiftUI app: Model (AppModel and extensions), Views, Keyboard, Design
+scripts/make-icon.swift  Draws the app icon into App/Trackaro/Assets.xcassets
 ```
 
-Next: the full UI (phases 3 to 5).
+Next: phase 4 (board, filters, saved views, cycles, projects).
 
 ## Commands
 
@@ -30,6 +34,11 @@ swift build -c release --product trackaro-mcp  build the MCP server binary
 
 The database lives at `~/Library/Application Support/Trackaro/trackaro.sqlite`. Both the app and `trackaro-mcp`
 honour `TRACKARO_DATABASE`; use it for any manual testing so real data is never touched.
+
+Drive the running app from the shell with deep links, which is also how to take screenshots of a given state:
+`open "trackaro://issue/ENG-1"`, `open "trackaro://team/ENG/active"`, `open "trackaro://command/palette"`.
+Synthetic keystrokes need Accessibility permission, so test keyboard behaviour through `ChordMatcher` tests.
+Force an appearance with `defaults write app.trackaro.Trackaro appearance dark` (and `defaults delete` after).
 
 In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream --level info --predicate
 'subsystem == "app.trackaro.Trackaro"'`.
@@ -52,6 +61,18 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
 - **Schema changes are new migrations** in `Schema.swift`. Never edit a shipped migration.
 - **Two processes, one file.** The app and `trackaro-mcp` share the database in WAL mode with a busy timeout. The
   app notices other writers by polling `latestChangeSeq()`. Never cache data across that boundary.
+
+## App rules
+
+- **One command list.** Every shortcut, palette entry, overlay row and context menu item comes from
+  `AppCommand`. Adding a command means a case there and an arm in `AppModel.perform`; the switch is exhaustive.
+- **The keyboard controller owns keys.** A local `NSEvent` monitor routes presses through `ChordMatcher` before
+  AppKit sees them. Text fields keep their keys except commands marked `worksInTextFields`.
+- **Every edit is undoable.** Writes go through `AppModel.edit(_:on:patch:)` or record an `EditBatch` themselves.
+  Undo uses compare-and-set, so it refuses rather than overwrite an agent's newer change.
+- **The list is AppKit.** `IssueTableView` wraps `NSTableView` with reused cells and reloads only when
+  `rowsVersion` changes. Do not replace it with a SwiftUI `List`.
+- **Colors come from `Theme` or the system.** No literal colors in views.
 
 ## MCP tool design
 
