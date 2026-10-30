@@ -16,6 +16,10 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   changes, quick create, a `⌘K` command palette with issue search, type-to-filter pickers (`S` `P` `A` `L` `⇧E`),
   `g` chords, multi-select, undo and redo that never overwrite an agent's newer change, a `?` shortcuts sheet,
   `trackaro://` deep links, light and dark appearance, and an app icon.
+- **Kanban board (done).** `⌘B` switches any view to a board: drag cards between and within columns, arrow
+  keys to move around, `⇧←` `⇧→` to step status, and cards animate when an agent moves them.
+- **Agent pings (prototype).** When you change an issue, agents can hear about it: Claude Code channel push,
+  Claude Code and Cursor hooks, or a live `trackaro-mcp watch` feed. See [docs/agent-pings.md](docs/agent-pings.md).
 
 ## Build
 
@@ -47,7 +51,8 @@ Cursor, in `~/.cursor/mcp.json`:
 { "mcpServers": { "trackaro": { "command": "/Users/YOU/.local/bin/trackaro-mcp" } } }
 ```
 
-Options: `--read-only` hides every tool that writes, `--agent-name "Claude (backend)"` records changes under a
+Options: `--channel` pushes your changes into Claude Code as they happen (see
+[docs/agent-pings.md](docs/agent-pings.md)), `--read-only` hides every tool that writes, `--agent-name "Claude (backend)"` records changes under a
 custom name, `--database PATH` (or `TRACKARO_DATABASE`) points at another database file.
 
 Agents can hand you links such as `trackaro://issue/ENG-42`, which open the issue in the app.

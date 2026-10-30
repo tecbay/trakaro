@@ -84,6 +84,9 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
 - **Compact output.** `ObjectBuilder` drops empty fields; `Output.render` is minified JSON. Listing tools return
   summaries; `get_issues` is the only full-detail read.
 - **stdout is the protocol.** `trackaro-mcp` writes nothing else there. Diagnostics go to stderr.
+- **Agent pings report only what the user did.** `AgentFeed` filters the change feed to `MemberKind.user` and
+  excludes the calling agent, so agents never react to their own or each other's changes. Hook output formats
+  in `AgentFeed.render` must match the Claude Code and Cursor docs exactly; see docs/agent-pings.md.
 - **Every tool is tested through `Harness`**, a real MCP `Client`. `advertisesToolsWithAnnotationsAndStrictSchemas`
   pins the read-only set; update it deliberately when adding a tool.
 - **Strict concurrency.** Swift 6 language mode. Records are `Sendable` value types; the store is `Sendable`.

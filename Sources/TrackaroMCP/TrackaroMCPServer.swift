@@ -11,10 +11,16 @@ public enum TrackaroMCPServer {
         public var readOnly: Bool
         /// Overrides the agent name derived from the client, for example to tell two Claude sessions apart.
         public var agentName: String?
+        /// Act as a Claude Code channel: push the user's changes into the session as they happen.
+        public var channel: Bool
+        /// How often channel mode checks for new changes.
+        public var channelInterval: Duration
 
-        public init(readOnly: Bool = false, agentName: String? = nil) {
+        public init(readOnly: Bool = false, agentName: String? = nil, channel: Bool = false, channelInterval: Duration = .milliseconds(700)) {
             self.readOnly = readOnly
             self.agentName = agentName
+            self.channel = channel
+            self.channelInterval = channelInterval
         }
     }
 
@@ -38,7 +44,7 @@ public enum TrackaroMCPServer {
             name: "trackaro",
             version: version,
             title: "Trackaro",
-            instructions: Instructions.text(readOnly: options.readOnly),
+            instructions: Instructions.text(readOnly: options.readOnly, channel: options.channel),
             capabilities: .init(
                 prompts: .init(listChanged: false),
                 resources: .init(subscribe: false, listChanged: false),
@@ -77,10 +83,34 @@ public enum TrackaroMCPServer {
             try Prompts.get(params.name, arguments: params.arguments ?? [:], context: try await session.context())
         }
 
-        try await server.start(transport: transport) { client, _ in
+        let channel = options.channel ? ChannelTransport(wrapping: transport) : nil
+        try await server.start(transport: channel ?? transport) { client, _ in
             try await session.identify(client)
         }
+        if let channel {
+            startChannelPump(channel, store: store, session: session, interval: options.channelInterval)
+        }
         return server
+    }
+
+    /// Checks the change feed and pushes what the user did into the session, batching everything since the
+    /// last check into one event so a burst of edits costs Claude one turn, not one per field.
+    private static func startChannelPump(_ channel: ChannelTransport, store: TrackaroStore, session: Session, interval: Duration) {
+        Task {
+            let feed = AgentFeed(store: store)
+            var cursor = (try? store.feedHead()) ?? FeedCursor(activity: 0, comment: 0)
+            while !Task.isCancelled {
+                try? await Task.sleep(for: interval)
+                let agentId = await session.agentId
+                guard let result = try? feed.changes(after: cursor, excludingMember: agentId) else { continue }
+                cursor = result.cursor
+                guard !result.lines.isEmpty, let message = AgentFeed.render(result.lines, as: .text) else { continue }
+                let issues = Array(Set(result.events.map(\.issue.identifier))).sorted()
+                var meta = ["source": "trackaro", "changes": "\(result.lines.count)", "issues": issues.joined(separator: ",")]
+                if issues.count == 1 { meta["issue"] = issues[0] }
+                try? await channel.push(message, meta: meta)
+            }
+        }
     }
 
     /// The name the agent appears under in Trackaro's history, from what the client reports about itself.
@@ -113,6 +143,8 @@ actor Session {
         agent = try store.agent(named: options.agentName ?? TrackaroMCPServer.agentName(for: client), clientName: client.name)
     }
 
+    var agentId: String? { agent?.id }
+
     func context() throws -> ToolContext {
         let current = try agent ?? store.agent(named: options.agentName ?? "Agent")
         agent = current
@@ -121,7 +153,7 @@ actor Session {
 }
 
 enum Instructions {
-    static func text(readOnly: Bool) -> String {
+    static func text(readOnly: Bool, channel: Bool = false) -> String {
         var lines = [
             "Trackaro is the user's local task tracker on this Mac. Issues have identifiers like ENG-42 (team key and number).",
             "Call get_workspace first: it lists teams, workflow state names, labels and projects. Use those exact names.",
@@ -135,6 +167,9 @@ enum Instructions {
                 "When you start an issue, move it to a started state such as In Progress. When you finish, add_comment with what you did and how you verified it, then move it to a review or completed state.",
                 "Prefer search_issues (compact) to find work and get_issues for full detail. Batch with create_sub_issues and bulk_update_issues instead of many single calls.",
             ]
+        }
+        if channel {
+            lines.append("Events from the trackaro channel are changes the user just made in the app, such as moving an issue to another column or commenting. Read them, then act with the Trackaro tools if they affect your work: start an issue moved into a started state, answer comments addressed to you, stop work on anything moved back or canceled. If nothing needs doing, say so briefly.")
         }
         return lines.joined(separator: "\n")
     }

@@ -13,6 +13,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", exact: "0.12.1"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
     ],
     targets: [
         .target(
@@ -21,7 +22,11 @@ let package = Package(
         ),
         .target(
             name: "TrackaroMCP",
-            dependencies: ["TrackaroCore", .product(name: "MCP", package: "swift-sdk")]
+            dependencies: [
+                "TrackaroCore", "TrackaroKit",
+                .product(name: "MCP", package: "swift-sdk"),
+                .product(name: "Logging", package: "swift-log"),
+            ]
         ),
         .target(
             name: "TrackaroKit",
