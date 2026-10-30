@@ -114,12 +114,7 @@ extension TrackaroStore {
     /// Full-text search over identifier, title and description. Every word is matched as a prefix, so
     /// "auth tok" finds "Authentication token refresh". An exact identifier match always ranks first.
     public func searchIssues(_ text: String, limit: Int = 20, includeArchived: Bool = false) throws -> [Issue] {
-        let words = text
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init)
-            .filter { !$0.isEmpty }
-        guard !words.isEmpty else { return [] }
-        let pattern = words.map { "\"\($0.replacingOccurrences(of: "\"", with: ""))\"*" }.joined(separator: " ")
+        guard let pattern = Self.ftsPattern(text) else { return [] }
         return try writer.read { db in
             var results: [Issue] = []
             if IssueKey(text) != nil, let exact = try? resolveIssue(db, text), includeArchived || exact.archivedAt == nil {

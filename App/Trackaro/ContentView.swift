@@ -41,7 +41,7 @@ struct ContentView: View {
                 if !issues.isEmpty {
                     Section(state.name) {
                         ForEach(issues) { issue in
-                            IssueRow(issue: issue)
+                            IssueRow(issue: issue, assignee: model.memberName(issue.assigneeId))
                                 .contextMenu { moveMenu(for: issue) }
                         }
                     }
@@ -68,6 +68,7 @@ struct ContentView: View {
 
 private struct IssueRow: View {
     let issue: Issue
+    let assignee: String?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -78,6 +79,11 @@ private struct IssueRow: View {
             Text(issue.title)
                 .lineLimit(1)
             Spacer()
+            if let assignee {
+                Text(assignee)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if issue.priority != .none {
                 Text(issue.priority.name.capitalized)
                     .font(.caption)

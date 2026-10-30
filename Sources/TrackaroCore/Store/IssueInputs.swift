@@ -121,6 +121,11 @@ public struct IssueChange: Sendable, Equatable {
     public let issue: Issue
     /// Fields whose stored value changed. Empty means the call was a no-op.
     public let changed: [IssueField]
+
+    public init(issue: Issue, changed: [IssueField]) {
+        self.issue = issue
+        self.changed = changed
+    }
 }
 
 struct FieldDelta {

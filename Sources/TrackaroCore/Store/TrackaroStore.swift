@@ -10,10 +10,18 @@ public final class TrackaroStore: Sendable {
     public init(writer: any DatabaseWriter, clock: @escaping @Sendable () -> Date = { Date() }) throws {
         self.writer = writer
         self.clock = clock
-        try Schema.migrator.migrate(writer)
+        do {
+            try Schema.migrator.migrate(writer)
+        } catch {
+            try Schema.migrator.migrate(writer)
+        }
     }
 
     /// Opens or creates the database file, in WAL mode so readers never block the writer.
+    ///
+    /// The app and the `trackaro-mcp` process open the same file. SQLite serialises their writes; the busy timeout
+    /// makes a writer wait for the other instead of failing. If both create the schema at once, the loser's
+    /// migration fails and the retry in `init` finds it already applied.
     public static func open(at url: URL, clock: @escaping @Sendable () -> Date = { Date() }) throws -> TrackaroStore {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let pool = try DatabasePool(path: url.path, configuration: configuration())
@@ -33,6 +41,7 @@ public final class TrackaroStore: Sendable {
     private static func configuration() -> Configuration {
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
+        configuration.busyMode = .timeout(5)
         configuration.label = "Trackaro"
         return configuration
     }
