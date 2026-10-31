@@ -11,6 +11,7 @@ public struct WorkspaceSnapshot: Sendable {
     public let projects: [Project]
     public let milestones: [Milestone]
     public let cycles: [Cycle]
+    public let savedViews: [SavedView]
 
     public let teamsById: [String: Team]
     public let statesById: [String: WorkflowState]
@@ -19,8 +20,9 @@ public struct WorkspaceSnapshot: Sendable {
     public let projectsById: [String: Project]
     public let milestonesById: [String: Milestone]
     public let cyclesById: [String: Cycle]
+    public let savedViewsById: [String: SavedView]
 
-    init(teams: [Team], states: [WorkflowState], labels: [IssueLabel], members: [Member], projects: [Project], milestones: [Milestone], cycles: [Cycle]) {
+    init(teams: [Team], states: [WorkflowState], labels: [IssueLabel], members: [Member], projects: [Project], milestones: [Milestone], cycles: [Cycle], savedViews: [SavedView]) {
         self.teams = teams
         self.states = states
         self.labels = labels
@@ -28,6 +30,7 @@ public struct WorkspaceSnapshot: Sendable {
         self.projects = projects
         self.milestones = milestones
         self.cycles = cycles
+        self.savedViews = savedViews
         teamsById = Dictionary(uniqueKeysWithValues: teams.map { ($0.id, $0) })
         statesById = Dictionary(uniqueKeysWithValues: states.map { ($0.id, $0) })
         labelsById = Dictionary(uniqueKeysWithValues: labels.map { ($0.id, $0) })
@@ -35,6 +38,7 @@ public struct WorkspaceSnapshot: Sendable {
         projectsById = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         milestonesById = Dictionary(uniqueKeysWithValues: milestones.map { ($0.id, $0) })
         cyclesById = Dictionary(uniqueKeysWithValues: cycles.map { ($0.id, $0) })
+        savedViewsById = Dictionary(uniqueKeysWithValues: savedViews.map { ($0.id, $0) })
     }
 
     public func states(ofTeam teamId: String) -> [WorkflowState] {
@@ -52,7 +56,8 @@ extension TrackaroStore {
                 members: try Member.order(Column("createdAt")).fetchAll(db),
                 projects: try Project.order(Column("sortKey")).fetchAll(db),
                 milestones: try Milestone.order(Column("projectId"), Column("sortKey")).fetchAll(db),
-                cycles: try Cycle.order(Column("teamId"), Column("number")).fetchAll(db)
+                cycles: try Cycle.order(Column("teamId"), Column("number")).fetchAll(db),
+                savedViews: try SavedView.order(Column("sortKey")).fetchAll(db)
             )
         }
     }

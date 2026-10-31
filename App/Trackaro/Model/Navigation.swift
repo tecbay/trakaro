@@ -7,6 +7,8 @@ enum SidebarItem: Hashable {
     case myIssues
     case agentActivity
     case team(String, TeamPage)
+    /// A saved view, by id.
+    case view(String)
 
     enum TeamPage: String, CaseIterable, Hashable {
         case all, active, backlog
@@ -42,6 +44,7 @@ enum SidebarItem: Hashable {
         case .myIssues: "my-issues"
         case .agentActivity: "agent-activity"
         case let .team(id, page): "team.\(id).\(page.rawValue)"
+        case let .view(id): "view.\(id)"
         }
     }
 
@@ -55,6 +58,7 @@ enum SidebarItem: Hashable {
         case .agentActivity: "Agent activity"
         case let .team(id, page):
             "\(snapshot?.teamsById[id]?.name ?? "Team") · \(page.title)"
+        case let .view(id): snapshot?.savedViewsById[id]?.name ?? "View"
         }
     }
 
@@ -63,6 +67,7 @@ enum SidebarItem: Hashable {
         case .myIssues: "person.crop.circle"
         case .agentActivity: "sparkles"
         case let .team(_, page): page.symbol
+        case .view: "line.3.horizontal.decrease.circle"
         }
     }
 
@@ -73,6 +78,7 @@ enum SidebarItem: Hashable {
         case .team(_, .backlog): "The backlog is empty."
         case .team(_, .active): "Nothing in progress."
         case .team: "No issues yet. Press C to create one."
+        case .view: "No issues match this view."
         }
     }
 }

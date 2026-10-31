@@ -15,7 +15,7 @@ struct OverlayHost: View {
                 .onTapGesture { model.overlay = nil }
             Group {
                 switch overlay {
-                case .palette, .picker:
+                case .palette, .picker, .filter, .saveView:
                     CommandMenuView()
                 case .shortcuts:
                     ShortcutsView()
@@ -133,10 +133,10 @@ private struct OverlayRow: View {
 /// Generated from `AppCommand.catalog`, so it can never disagree with the real bindings.
 struct ShortcutsView: View {
     var body: some View {
-        let catalog = AppCommand.catalog
+        let catalog = AppCommand.catalog.filter { $0.binding != nil }
         VStack(alignment: .leading, spacing: 16) {
             Text("Keyboard shortcuts").font(.title3.weight(.semibold))
-            HStack(alignment: .top, spacing: 28) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(210), spacing: 28, alignment: .top), count: 3), alignment: .leading, spacing: 20) {
                 ForEach(AppCommand.sections, id: \.self) { section in
                     VStack(alignment: .leading, spacing: 7) {
                         Text(section).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -152,7 +152,6 @@ struct ShortcutsView: View {
                             }
                         }
                     }
-                    .frame(width: 210)
                 }
             }
             Text("Esc or ? to close").font(.caption).foregroundStyle(.tertiary)

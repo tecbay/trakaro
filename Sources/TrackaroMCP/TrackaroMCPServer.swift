@@ -25,7 +25,7 @@ public enum TrackaroMCPServer {
     }
 
     static var allTools: [ToolDefinition] {
-        WorkspaceTools.all + IssueTools.all + ConversationTools.all + PlanningTools.all
+        WorkspaceTools.all + IssueTools.all + ConversationTools.all + PlanningTools.all + ViewTools.all
     }
 
     static func tools(for options: Options) -> [ToolDefinition] {

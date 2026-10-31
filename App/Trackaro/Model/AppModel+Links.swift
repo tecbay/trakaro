@@ -27,6 +27,12 @@ extension AppModel {
                 return
             }
             sidebarSelection = .team(team.id, page.flatMap(SidebarItem.TeamPage.init(rawValue:)) ?? .all)
+        case let .view(reference):
+            guard let view = snapshot?.savedViews.first(where: { $0.id == reference || $0.name.caseInsensitiveCompare(reference) == .orderedSame }) else {
+                showToast("No view named \(reference)", isError: true)
+                return
+            }
+            sidebarSelection = .view(view.id)
         case let .command(command):
             if canPerform(command) { perform(command) }
         }

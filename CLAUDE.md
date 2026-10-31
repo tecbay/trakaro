@@ -72,6 +72,10 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
   Undo uses compare-and-set, so it refuses rather than overwrite an agent's newer change.
 - **The list is AppKit.** `IssueTableView` wraps `NSTableView` with reused cells and reloads only when
   `rowsVersion` changes. Do not replace it with a SwiftUI `List`.
+- **One filter type.** `IssueFilter` (core) is the filter bar's state, a saved view's stored JSON and what
+  `search_issues` and `save_view` build from arguments. It only narrows: `applied(to:)` intersects with the page's
+  own query, and `narrowed(by:)` folds a page into a filter when saving a view. Options and chips come from
+  `FilterCatalog` in TrackaroKit.
 - **Colors come from `Theme` or the system.** No literal colors in views.
 
 ## MCP tool design

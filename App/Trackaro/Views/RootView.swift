@@ -54,6 +54,17 @@ struct SidebarView: View {
                 }
                 .tag(SidebarItem.agentActivity)
             }
+            if let views = model.snapshot?.savedViews, !views.isEmpty {
+                Section("Views") {
+                    ForEach(views) { view in
+                        Label(view.name, systemImage: SidebarItem.view(view.id).symbol)
+                            .tag(SidebarItem.view(view.id))
+                            .contextMenu {
+                                Button("Delete view", role: .destructive) { model.deleteView(view.id) }
+                            }
+                    }
+                }
+            }
             ForEach(model.snapshot?.teams.filter { $0.archivedAt == nil } ?? []) { team in
                 Section(team.name) {
                     ForEach(SidebarItem.TeamPage.allCases, id: \.self) { page in
@@ -86,6 +97,14 @@ struct IssueListPane: View {
                 ContentUnavailableView("Could not open the database", systemImage: "exclamationmark.triangle", description: Text(error))
             } else if model.layout == .board, !model.columns.isEmpty {
                 BoardView()
+            } else if model.rows.isEmpty, model.savedView == nil, !model.filter.isEmpty {
+                ContentUnavailableView {
+                    Label("No matching issues", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("Nothing here matches these filters.")
+                } actions: {
+                    Button("Clear filters") { model.perform(.clearFilters) }
+                }
             } else if model.rows.isEmpty {
                 ContentUnavailableView {
                     Label(model.currentItem.title(in: model.snapshot), systemImage: model.currentItem.symbol)
@@ -104,6 +123,10 @@ struct IssueListPane: View {
                 )
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if model.filterBarVisible { FilterBar() }
+        }
         .navigationTitle(model.currentItem.title(in: model.snapshot))
         .navigationSubtitle(model.rows.isEmpty ? "" : "\(model.issueCount) issues")
         .toolbar {
@@ -117,6 +140,12 @@ struct IssueListPane: View {
                 }
                 .pickerStyle(.segmented)
                 .help("Board or list (⌘B)")
+                Button {
+                    model.perform(.filter)
+                } label: {
+                    Label("Filter", systemImage: model.filter.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                }
+                .help("Filter (F)")
                 Button {
                     model.perform(.palette)
                 } label: {

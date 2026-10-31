@@ -1,10 +1,37 @@
 import Foundation
 import GRDB
 
-/// Matches a nullable reference column: either "not set" or "one of these ids".
+/// Matches a nullable reference column: "not set", "one of these ids", or either.
 public enum ReferenceFilter: Sendable, Equatable {
     case none
     case anyOf([String])
+    case noneOrAnyOf([String])
+
+    /// From filter values, where `IssueFilter.unset` stands for "not set".
+    public init(values: [String]) {
+        self = Self.make(ids: values.filter { $0 != IssueFilter.unset }, none: values.contains(IssueFilter.unset))
+    }
+
+    /// Rows both filters accept. Nil means unconstrained.
+    public static func intersect(_ lhs: ReferenceFilter?, _ rhs: ReferenceFilter?) -> ReferenceFilter? {
+        guard let lhs else { return rhs }
+        guard let rhs else { return lhs }
+        let kept = Set(rhs.parts.ids)
+        return make(ids: lhs.parts.ids.filter(kept.contains), none: lhs.parts.none && rhs.parts.none)
+    }
+
+    var parts: (ids: [String], none: Bool) {
+        switch self {
+        case .none: ([], true)
+        case let .anyOf(ids): (ids, false)
+        case let .noneOrAnyOf(ids): (ids, true)
+        }
+    }
+
+    private static func make(ids: [String], none: Bool) -> ReferenceFilter {
+        guard none else { return .anyOf(ids) }
+        return ids.isEmpty ? .none : .noneOrAnyOf(ids)
+    }
 }
 
 /// A filtered, ordered, paged issue listing. Every nil property means "no constraint".
@@ -23,6 +50,8 @@ public struct IssueQuery: Sendable, Equatable {
     }
 
     public var text: String?
+    /// Only these issues. The app uses it to filter a list it built some other way, such as recent agent changes.
+    public var issueIds: [String]?
     public var teamIds: [String]?
     public var stateIds: [String]?
     public var stateCategories: [StateCategory]?
@@ -41,12 +70,13 @@ public struct IssueQuery: Sendable, Equatable {
     public var offset: Int
 
     public init(
-        text: String? = nil, teamIds: [String]? = nil, stateIds: [String]? = nil, stateCategories: [StateCategory]? = nil,
+        text: String? = nil, issueIds: [String]? = nil, teamIds: [String]? = nil, stateIds: [String]? = nil, stateCategories: [StateCategory]? = nil,
         assignee: ReferenceFilter? = nil, labelIds: [String]? = nil, project: ReferenceFilter? = nil,
         cycle: ReferenceFilter? = nil, parentId: String? = nil, priorities: [Priority]? = nil,
         includeArchived: Bool = false, includeSubIssues: Bool = true, order: Order = .manual, limit: Int = 50, offset: Int = 0
     ) {
         self.text = text
+        self.issueIds = issueIds
         self.teamIds = teamIds
         self.stateIds = stateIds
         self.stateCategories = stateCategories
@@ -103,6 +133,7 @@ extension TrackaroStore {
         }
         if !query.includeArchived { conditions.append("issue.archivedAt IS NULL") }
         if !query.includeSubIssues { conditions.append("issue.parentId IS NULL") }
+        if let ids = query.issueIds { conditions.append(Self.membership("issue.id", ids, &arguments)) }
         if let ids = query.teamIds { conditions.append(Self.membership("issue.teamId", ids, &arguments)) }
         if let ids = query.stateIds { conditions.append(Self.membership("issue.stateId", ids, &arguments)) }
         if let categories = query.stateCategories {
@@ -228,6 +259,7 @@ extension TrackaroStore {
         switch filter {
         case .none: "\(column) IS NULL"
         case let .anyOf(ids): membership(column, ids, &arguments)
+        case let .noneOrAnyOf(ids): "(\(column) IS NULL OR \(membership(column, ids, &arguments)))"
         }
     }
 }

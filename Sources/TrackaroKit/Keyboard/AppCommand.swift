@@ -2,10 +2,11 @@ import Foundation
 
 /// Every command in the app. The keyboard layer, the command palette and the `?` overlay all read this one list,
 /// and the app switches over it exhaustively, so a command cannot exist without an action or a shortcut drift
-/// out of the overlay.
+/// out of the overlay. A command without a binding is reachable from the palette.
 public enum AppCommand: String, CaseIterable, Sendable {
     case palette, shortcuts, newIssue, toggleLayout, toggleSidebar, toggleInspector, undo, redo
     case goMyIssues, goAgentActivity, goIssues, goActive, goBacklog
+    case filter, searchInView, clearFilters, saveView, revertView, deleteView
     case next, previous, extendDown, extendUp, toggleSelect, open, clearSelection
     case cardUp, cardDown, columnLeft, columnRight, moveToPreviousStatus, moveToNextStatus
     case setStatus, setPriority, setAssignee, setLabels, setEstimate, assignToMe, copyIdentifier, archive
@@ -26,6 +27,13 @@ public enum AppCommand: String, CaseIterable, Sendable {
         case .goIssues: KeyCommand(rawValue, "Go to team issues", section: "Navigation", binding: "g i")
         case .goActive: KeyCommand(rawValue, "Go to active issues", section: "Navigation", binding: "g t")
         case .goBacklog: KeyCommand(rawValue, "Go to backlog", section: "Navigation", binding: "g b")
+
+        case .filter: KeyCommand(rawValue, "Filter", section: "View", binding: "f")
+        case .searchInView: KeyCommand(rawValue, "Filter by text", section: "View", binding: "/")
+        case .clearFilters: KeyCommand(rawValue, "Clear filters", section: "View", binding: "shift+f")
+        case .saveView: KeyCommand(rawValue, "Save as view", section: "View", binding: "cmd+s")
+        case .revertView: KeyCommand(rawValue, "Discard changes to this view", section: "View", binding: nil)
+        case .deleteView: KeyCommand(rawValue, "Delete this view", section: "View", binding: nil)
 
         case .next: KeyCommand(rawValue, "Next issue", section: "List", binding: "j", scope: .list, inPalette: false)
         case .previous: KeyCommand(rawValue, "Previous issue", section: "List", binding: "k", scope: .list, inPalette: false)
@@ -56,5 +64,5 @@ public enum AppCommand: String, CaseIterable, Sendable {
     public static var catalog: [KeyCommand] { allCases.map(\.definition) }
 
     /// Section order for the shortcuts overlay.
-    public static let sections = ["General", "Navigation", "List", "Board", "Issue"]
+    public static let sections = ["General", "Navigation", "View", "List", "Board", "Issue"]
 }

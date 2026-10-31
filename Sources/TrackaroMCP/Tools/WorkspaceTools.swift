@@ -12,8 +12,8 @@ enum WorkspaceTools {
         name: "get_workspace",
         title: "Get workspace",
         description: """
-            Start here. Teams with their keys and workflow states, labels, projects, active cycles and members, \
-            in one call. Use these exact names in other tools.
+            Start here. Teams with their keys and workflow states, labels, projects, active cycles, members and \
+            saved views, in one call. Use these exact names in other tools.
             """,
         inputSchema: JSONSchema.object([:]),
         readOnly: true
@@ -59,6 +59,7 @@ enum WorkspaceTools {
         result.set("labels", .array(labels))
         result.set("projects", .array(snapshot.projects.filter { $0.archivedAt == nil }.map { .string($0.name) }))
         result.set("members", .array(members))
+        result.set("views", .array(snapshot.savedViews.map { ViewTools.describe($0, snapshot: snapshot).value }))
         result.set("priorities", .array(Priority.allCases.map { .string($0.name) }))
         return result.value
     }

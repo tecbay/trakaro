@@ -17,6 +17,8 @@ final class AppModel {
     enum Overlay: Equatable {
         case palette
         case picker(PickerKind)
+        case filter
+        case saveView
         case shortcuts
     }
 
@@ -33,6 +35,8 @@ final class AppModel {
     private(set) var columns: [BoardColumn] = []
     /// Board or list, remembered per sidebar item.
     private(set) var layouts: [String: ViewLayout] = AppModel.loadLayouts()
+    /// The filter set on each sidebar item, remembered across launches. For a saved view it is the unsaved edit.
+    var filters: [String: IssueFilter] = AppModel.loadFilters()
     private(set) var detail: IssueDetail?
     private(set) var loadError: String?
 
@@ -43,6 +47,8 @@ final class AppModel {
             guard sidebarSelection != oldValue else { return }
             selection = []
             cursor = nil
+            textFilterVisible = false
+            filterDraft = filter.text ?? ""
             reloadRows()
             loadDetail()
         }
@@ -76,6 +82,12 @@ final class AppModel {
     var overlayIndex = 0
     /// The issues an open picker applies to, captured when it opened so the list can change underneath.
     var pickerTargets: [String] = []
+    /// Shows the filter bar's text field even with no filter set, after `/`.
+    var textFilterVisible = false
+    /// The text field's contents, kept apart from the filter so typing a trailing space is not trimmed away.
+    var filterDraft = ""
+    /// Bumped to move focus into the filter bar's text field.
+    var filterFocusRequest = 0
     var quickCreatePresented = false
     /// The state a new issue starts in when created from a board column's + button.
     var quickCreateStateId: String?
@@ -138,36 +150,44 @@ final class AppModel {
         } catch {
             showError(error)
         }
-        if case let .team(id, _) = currentItem, snapshot?.teamsById[id] == nil {
+        switch currentItem {
+        case let .team(id, _) where snapshot?.teamsById[id] == nil, let .view(id) where snapshot?.savedViewsById[id] == nil:
             sidebarSelection = .myIssues
+        default:
+            break
         }
         reloadRows()
         loadDetail()
         if overlay != nil { refreshOverlay() }
     }
 
-    private func reloadRows() {
-        guard let store, let snapshot, let user else { return }
+    func reloadRows() {
+        guard let store, let snapshot else { return }
         do {
             let issues: [Issue]
             var notes: [String: String] = [:]
             var grouping = ListGrouping.state
+            let filter = self.filter
+            let page = pageFilter(for: currentItem).applied(to: IssueQuery(order: .manual, limit: TrackaroStore.maxPageSize))
             switch currentItem {
             case .myIssues:
-                issues = try store.queryIssues(IssueQuery(
-                    stateCategories: StateCategory.allCases.filter(\.isOpen), assignee: .anyOf([user.id]),
-                    order: .manual, limit: TrackaroStore.maxPageSize
-                )).issues
+                issues = try store.queryIssues(filter.applied(to: page)).issues
                 grouping = .category
             case .agentActivity:
-                let changes = try store.recentChanges(by: .agent)
+                var changes = try store.recentChanges(by: .agent)
+                if !filter.isEmpty {
+                    let scoped = IssueQuery(issueIds: changes.map(\.issue.id), limit: TrackaroStore.maxPageSize)
+                    let kept = Set(try store.queryIssues(filter.applied(to: scoped)).issues.map(\.id))
+                    changes = changes.filter { kept.contains($0.issue.id) }
+                }
                 issues = changes.map(\.issue)
                 for change in changes { notes[change.issue.id] = "\(change.member.name) · \(RelativeTime.string(change.at))" }
                 grouping = .none
-            case let .team(teamId, page):
-                issues = try store.queryIssues(IssueQuery(
-                    teamIds: [teamId], stateCategories: page.categories, order: .manual, limit: TrackaroStore.maxPageSize
-                )).issues
+            case .team:
+                issues = try store.queryIssues(filter.applied(to: page)).issues
+            case .view:
+                issues = try store.queryIssues(filter.applied(to: page)).issues
+                grouping = boardTeamId == nil ? .category : .state
             }
             if notes.isEmpty {
                 let recent = Date().addingTimeInterval(-Self.recentAgentWindow)
@@ -203,8 +223,11 @@ final class AppModel {
             IssueRowBuilder.item($0, snapshot: snapshot, labelIds: labelIds[$0.id] ?? [],
                                  parentIdentifier: $0.parentId.flatMap { parents[$0] }, note: notes[$0.id])
         }
-        if case let .team(teamId, page) = currentItem {
-            let states = snapshot.states(ofTeam: teamId).filter { page.categories?.contains($0.category) ?? true }
+        if let teamId = boardTeamId {
+            let shown = pageFilter(for: currentItem).narrowed(by: filter)
+            let states = snapshot.states(ofTeam: teamId).filter { state in
+                (shown.stateCategories?.contains(state.category) ?? true) && (shown.stateIds?.contains(state.id) ?? true)
+            }
             return BoardBuilder.stateColumns(items, states: states)
         }
         return BoardBuilder.categoryColumns(items, snapshot: snapshot)
@@ -241,10 +264,27 @@ final class AppModel {
 
     // MARK: Layout
 
-    var layout: ViewLayout { layouts[currentItem.storageKey] ?? .list }
+    var layout: ViewLayout { savedView?.layout ?? layouts[currentItem.storageKey] ?? .list }
+
+    /// The one team whose workflow the board and the grouping follow, or nil when the list spans teams.
+    var boardTeamId: String? {
+        if let teamId = currentItem.teamId { return teamId }
+        guard case .view = currentItem, let teams = filter.teamIds, teams.count == 1 else { return nil }
+        return teams.first
+    }
 
     func toggleLayout() {
-        layouts[currentItem.storageKey] = layout == .board ? .list : .board
+        let next: ViewLayout = layout == .board ? .list : .board
+        if let view = savedView, let store, let user {
+            do {
+                try store.updateView(view.id, layout: next, by: user.id)
+                reloadAll()
+            } catch {
+                showError(error)
+            }
+            return
+        }
+        layouts[currentItem.storageKey] = next
         UserDefaults.standard.set(layouts.mapValues(\.rawValue), forKey: Self.layoutsKey)
         reloadRows()
     }

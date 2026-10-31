@@ -13,6 +13,9 @@ struct OverlayItem: Identifiable, Equatable {
         case assignee(String?)
         case label(String)
         case estimate(Int?)
+        case filter(FilterOption)
+        case saveView(String)
+        case updateView
     }
 
     enum Tint: Equatable {
@@ -51,8 +54,14 @@ extension AppModel {
             history.canRedo
         case .clearSelection:
             !selection.isEmpty || cursor != nil || overlay != nil
+        case .clearFilters:
+            !filter.isEmpty || textFilterVisible
+        case .revertView:
+            isViewModified
+        case .deleteView:
+            savedView != nil
         case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
-             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog:
+             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView:
             true
         }
     }
@@ -72,6 +81,12 @@ extension AppModel {
         case .goIssues: goToTeam(.all)
         case .goActive: goToTeam(.active)
         case .goBacklog: goToTeam(.backlog)
+        case .filter: overlay == .filter ? (overlay = nil) : openFilterPicker()
+        case .searchInView: focusFilterText()
+        case .clearFilters: clearFilters()
+        case .saveView: overlay = .saveView
+        case .revertView: revertView()
+        case .deleteView: if let id = savedView?.id { deleteView(id) }
         case .next: layout == .board ? moveCardCursor(by: 1) : moveCursor(by: 1)
         case .previous: layout == .board ? moveCardCursor(by: -1) : moveCursor(by: -1)
         case .cardUp: moveCardCursor(by: -1)
@@ -117,6 +132,8 @@ extension AppModel {
         case .picker(.assignee): "Assign to…"
         case .picker(.labels): "Toggle labels…"
         case .picker(.estimate): "Set estimate…"
+        case .filter: "Filter by status, priority, assignee, label…"
+        case .saveView: isViewModified ? "Name a new view, or press Return to update this one" : "Name the new view"
         case .shortcuts, nil: ""
         }
     }
@@ -158,6 +175,14 @@ extension AppModel {
         case let .estimate(points):
             overlay = nil
             setEstimate(points, on: ids)
+        case let .filter(option):
+            toggleFilter(option)
+        case let .saveView(name):
+            overlay = nil
+            saveView(named: name)
+        case .updateView:
+            overlay = nil
+            updateCurrentView()
         }
     }
 
@@ -166,6 +191,8 @@ extension AppModel {
         switch overlay {
         case .palette: items = paletteItems()
         case let .picker(kind): items = FuzzyMatch.rank(pickerItems(kind), query: overlayQuery) { $0.title }
+        case .filter: items = FuzzyMatch.rank(filterItems(), query: overlayQuery) { "\($0.subtitle ?? "") \($0.title)" }
+        case .saveView: items = saveViewItems()
         case .shortcuts, nil: items = []
         }
         overlayItems = items
@@ -177,7 +204,7 @@ extension AppModel {
             OverlayItem(id: "command.\(command.rawValue)", title: command.definition.title, subtitle: command.definition.section,
                         symbol: "command", shortcut: command.definition.binding?.description, action: .command(command))
         }
-        var places: [SidebarItem] = []
+        var places: [SidebarItem] = snapshot?.savedViews.map { .view($0.id) } ?? []
         for team in snapshot?.teams.filter({ $0.archivedAt == nil }) ?? [] {
             places += SidebarItem.TeamPage.allCases.map { .team(team.id, $0) }
         }

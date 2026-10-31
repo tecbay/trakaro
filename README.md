@@ -8,7 +8,7 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   activity history, projects, milestones, cycles, saved views, a change log and full-text search. Issue rules:
   `KEY-n` identifiers that are never reused, lifecycle timestamps, fractional ordering, sub-issues, inverse
   relations, compare-and-set updates, team moves that keep the old identifier working.
-- **Phase 2, MCP server (done).** `trackaro-mcp` exposes 23 tools, 3 resources and 3 prompts over stdio. Agents
+- **Phase 2, MCP server (done).** `trackaro-mcp` exposes 25 tools, 3 resources and 3 prompts over stdio. Agents
   use names (`ENG-42`, `"In Progress"`, `"me"`), every change is recorded under the agent's name, and the app
   shows agent edits live.
 - **Phase 3, core UI (done).** Sidebar (My issues, Agent activity, per-team Issues, Active, Backlog), a fast
@@ -18,6 +18,10 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   `trackaro://` deep links, light and dark appearance, and an app icon.
 - **Kanban board (done).** `⌘B` switches any view to a board: drag cards between and within columns, arrow
   keys to move around, `⇧←` `⇧→` to step status, and cards animate when an agent moves them.
+- **Filters and saved views (done).** `F` filters any list by status, priority, assignee, label, project or team,
+  `/` filters by text, `⇧F` clears. `⌘S` saves the page plus its filters as a view in the sidebar, and edits to a
+  view stay unsaved until you save or discard them. Agents see views in `get_workspace`, read them with
+  `search_issues` `view`, and create them with `save_view` (for example a "Ready for agent" board).
 - **Agent pings (prototype).** When you change an issue, agents can hear about it: Claude Code channel push,
   Claude Code and Cursor hooks, or a live `trackaro-mcp watch` feed. See [docs/agent-pings.md](docs/agent-pings.md).
 
@@ -68,6 +72,7 @@ picks up their changes within a third of a second.
 | Issues | `search_issues`, `get_issues`, `create_issue`, `create_sub_issues`, `update_issue`, `move_issue`, `bulk_update_issues`, `archive_issue` |
 | Conversation | `add_comment`, `list_comments`, `get_issue_history`, `set_relation`, `remove_relation`, `mark_duplicate` |
 | Planning | `list_projects`, `create_project`, `create_milestone`, `list_cycles`, `create_cycle`, `cycle_progress` |
+| Views | `save_view`, `delete_view` (views are listed by `get_workspace`) |
 | Setup | `create_label`, `create_team` |
 
 Resources: `trackaro://workspace`, `trackaro://cycles/active`, `trackaro://issue/{identifier}`.
@@ -78,5 +83,5 @@ Prompts: `standup`, `triage`, `plan_work`.
 1. Foundation (done)
 2. MCP server (done)
 3. Core UI (done)
-4. Planning: board, filters, saved views, cycles, projects
+4. Planning: board and filters with saved views (done); cycle and project pages next
 5. Notes, local inbox and reminders, release signing

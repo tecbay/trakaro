@@ -94,7 +94,7 @@ struct ChordMatcherTests {
     @Test func appCatalogHasNoConflictsAndEveryBindingParses() {
         let catalog = AppCommand.catalog
         #expect(ChordMatcher.conflicts(in: catalog).isEmpty)
-        #expect(catalog.allSatisfy { $0.binding != nil })
+        #expect(catalog.allSatisfy { $0.binding != nil || $0.inPalette })
         #expect(Set(catalog.map(\.section)).isSubset(of: Set(AppCommand.sections)))
         #expect(ChordMatcher.conflicts(in: catalog + [KeyCommand("dup", "Dup", section: "", binding: "c")]).count == 1)
     }

@@ -36,6 +36,64 @@ enum IssueTools {
         "remove_labels": JSONSchema.array("Label names to remove.", of: JSONSchema.string("Label name.")),
     ]
 
+    // MARK: Filters
+
+    /// The arguments that make up a filter, shared by search_issues and save_view.
+    static let filterProperties: [String: Value] = [
+        "query": JSONSchema.string("Free text. Every word must match as a prefix."),
+        "team": JSONSchema.string("Team key or name."),
+        "state": JSONSchema.string("Workflow state name, such as \"In Review\". Matches that name in every team."),
+        "category": JSONSchema.string(
+            "State category. \"open\" is everything not completed or canceled; \"closed\" is completed or canceled.",
+            oneOf: StateCategory.allCases.map(\.rawValue) + ["open", "closed"]
+        ),
+        "assignee": JSONSchema.string("\"me\", \"self\", a member name, or \"none\" for unassigned."),
+        "label": JSONSchema.string("Label name."),
+        "project": JSONSchema.string("Project name or slug, or \"none\"."),
+        "priority": JSONSchema.string("Only this priority.", oneOf: priorityNames),
+    ]
+
+    /// A filter from the filter arguments, and the teams it covers: the named team, or every active team.
+    static func issueFilter(from arguments: Arguments, resolver: Resolver) throws -> (IssueFilter, [Team]) {
+        var filter = IssueFilter()
+        filter.text = try arguments.string("query")
+        let teams: [Team]
+        if let reference = try arguments.string("team") {
+            let team = try resolver.team(reference)
+            teams = [team]
+            filter.teamIds = [team.id]
+        } else {
+            teams = resolver.activeTeams
+        }
+        if let state = try arguments.string("state") {
+            filter.stateIds = try resolver.stateIds(named: state, teams: teams)
+        }
+        if let category = try arguments.string("category")?.lowercased() {
+            switch category {
+            case "open": filter.stateCategories = StateCategory.allCases.filter(\.isOpen)
+            case "closed": filter.stateCategories = [.completed, .canceled]
+            default:
+                guard let value = StateCategory(rawValue: category) else {
+                    throw TrackaroError.noMatch(entity: "category", reference: category, options: StateCategory.allCases.map(\.rawValue) + ["open", "closed"])
+                }
+                filter.stateCategories = [value]
+            }
+        }
+        if let assignee = try arguments.string("assignee") {
+            filter.assigneeIds = [assignee.lowercased() == "none" ? IssueFilter.unset : try resolver.member(assignee).id]
+        }
+        if let label = try arguments.string("label") {
+            filter.labelIds = try resolver.labelIds(named: label)
+        }
+        if let project = try arguments.string("project") {
+            filter.projectIds = [project.lowercased() == "none" ? IssueFilter.unset : try resolver.project(project).id]
+        }
+        if let priority = try arguments.priority("priority") {
+            filter.priorities = [priority]
+        }
+        return (filter, teams)
+    }
+
     // MARK: search_issues
 
     static let searchIssues = ToolDefinition(
@@ -46,20 +104,10 @@ enum IssueTools {
             relations and sub-issues. Text matches identifier, title and description by word prefix. \
             Use category "open" for unfinished work and assignee "me" or "self" for the user's or your own issues.
             """,
-        inputSchema: JSONSchema.object([
-            "query": JSONSchema.string("Free text. Every word must match as a prefix."),
-            "team": JSONSchema.string("Team key or name."),
-            "state": JSONSchema.string("Workflow state name, such as \"In Review\". Matches that name in every team."),
-            "category": JSONSchema.string(
-                "State category. \"open\" is everything not completed or canceled; \"closed\" is completed or canceled.",
-                oneOf: StateCategory.allCases.map(\.rawValue) + ["open", "closed"]
-            ),
-            "assignee": JSONSchema.string("\"me\", \"self\", a member name, or \"none\" for unassigned."),
-            "label": JSONSchema.string("Label name."),
-            "project": JSONSchema.string("Project name or slug, or \"none\"."),
+        inputSchema: JSONSchema.object(filterProperties.merging([
+            "view": JSONSchema.string("Saved view name. Its filters apply first; the other arguments narrow further."),
             "cycle": JSONSchema.string("\"active\", a cycle number (needs team), or \"none\"."),
             "parent": JSONSchema.string("Only sub-issues of this issue."),
-            "priority": JSONSchema.string("Only this priority.", oneOf: priorityNames),
             "include_sub_issues": JSONSchema.boolean("Include issues that have a parent. Default true."),
             "include_archived": JSONSchema.boolean("Include archived issues. Default false."),
             "order": JSONSchema.string(
@@ -68,43 +116,16 @@ enum IssueTools {
             ),
             "limit": JSONSchema.integer("Page size, 1 to 100. Default 25.", minimum: 1, maximum: 100),
             "cursor": JSONSchema.string("next_cursor from the previous page."),
-        ]),
+        ]) { current, _ in current }),
         readOnly: true
     ) { context, arguments in
         let resolver = try Resolver(context)
-        var query = IssueQuery()
-        query.text = try arguments.string("query")
-        let teams: [Team]
-        if let reference = try arguments.string("team") {
-            let team = try resolver.team(reference)
-            teams = [team]
-            query.teamIds = [team.id]
-        } else {
-            teams = resolver.activeTeams
+        var base = IssueQuery()
+        if let view = try arguments.string("view") {
+            base = try context.store.view(view).issueFilter.applied(to: base)
         }
-        if let state = try arguments.string("state") {
-            query.stateIds = try resolver.stateIds(named: state, teams: teams)
-        }
-        if let category = try arguments.string("category")?.lowercased() {
-            switch category {
-            case "open": query.stateCategories = StateCategory.allCases.filter(\.isOpen)
-            case "closed": query.stateCategories = [.completed, .canceled]
-            default:
-                guard let value = StateCategory(rawValue: category) else {
-                    throw TrackaroError.noMatch(entity: "category", reference: category, options: StateCategory.allCases.map(\.rawValue) + ["open", "closed"])
-                }
-                query.stateCategories = [value]
-            }
-        }
-        if let assignee = try arguments.string("assignee") {
-            query.assignee = assignee.lowercased() == "none" ? ReferenceFilter.none : .anyOf([try resolver.member(assignee).id])
-        }
-        if let label = try arguments.string("label") {
-            query.labelIds = try resolver.labelIds(named: label)
-        }
-        if let project = try arguments.string("project") {
-            query.project = project.lowercased() == "none" ? ReferenceFilter.none : .anyOf([try resolver.project(project).id])
-        }
+        let (filter, teams) = try issueFilter(from: arguments, resolver: resolver)
+        var query = filter.applied(to: base)
         if let cycle = try arguments.string("cycle") {
             if cycle.lowercased() == "none" {
                 query.cycle = ReferenceFilter.none
@@ -119,9 +140,6 @@ enum IssueTools {
         }
         if let parent = try arguments.string("parent") {
             query.parentId = try resolver.issue(parent).id
-        }
-        if let priority = try arguments.priority("priority") {
-            query.priorities = [priority]
         }
         query.includeSubIssues = try arguments.bool("include_sub_issues") ?? true
         query.includeArchived = try arguments.bool("include_archived") ?? false
