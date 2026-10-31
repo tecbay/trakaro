@@ -6,7 +6,7 @@ change tasks through an MCP server. Native SwiftUI over a UI-free Swift core. Lo
 ## Layout
 
 ```
-Package.swift            TrackaroCore, TrackaroMCP, the trackaro-mcp executable, and their tests
+Package.swift            TrackaroCore, TrackaroKit, TrackaroMCP, the trackaro-mcp executable, and their tests
 Sources/TrackaroCore     Domain model, schema, store, ordering, queries
 Sources/TrackaroMCP      MCP tools, resources, prompts (official swift-sdk, pinned exactly)
 Sources/TrackaroKit      UI logic with no UI: key bindings and chords, the command catalog, fuzzy matching,
@@ -20,13 +20,14 @@ App/Trackaro             SwiftUI app: Model (AppModel and extensions), Views, Ke
 scripts/make-icon.swift  Draws the app icon into App/Trackaro/Assets.xcassets
 ```
 
-Next: phase 4 (board, filters, saved views, cycles, projects).
+For the architecture map, data flows, change recipes and the on-screen verification routine, use the
+`trackaro-architecture` skill in `.claude/skills/`. Keep it current when structure changes.
 
 ## Commands
 
 ```
 swift build                                   build the core
-swift test                                    run all core tests
+swift test                                    run all tests (Core, Kit, MCP)
 cd App && xcodegen generate                   regenerate Trackaro.xcodeproj after editing project.yml
 xcodebuild -project App/Trackaro.xcodeproj -scheme Trackaro -derivedDataPath .build/xcode build
 swift build -c release --product trackaro-mcp  build the MCP server binary
