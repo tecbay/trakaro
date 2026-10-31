@@ -84,6 +84,7 @@ cd App && xcodegen generate                    after adding or removing app sour
 xcodebuild -project App/Trackaro.xcodeproj -scheme Trackaro -configuration Debug -derivedDataPath .build/xcode build
 open .build/xcode/Build/Products/Debug/Trackaro.app            the user's normal way to open it today
 swift build -c release --product trackaro-mcp && install -m 755 .build/release/trackaro-mcp ~/.local/bin/trackaro-mcp
+scripts/make-dmg.sh                            dist/Trackaro-<version>.dmg, with trackaro-mcp in Contents/Helpers
 ```
 
 The user's Claude Code has `trackaro` registered at user scope as `~/.local/bin/trackaro-mcp --channel`.
@@ -108,5 +109,5 @@ through MCP, driving the app with deep links, capturing only Trackaro's window, 
 
 Done: core store, MCP server (26 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
 layer, board, filters and saved views, projects and cycles pages, agent pings (channel push, hooks, watch), column
-automations. Not yet: Cursor setup and installed hooks, notes, an agent inbox, signing and an `/Applications`
-install. `README.md` keeps the user-facing status list; update it with each feature.
+automations, `.dmg` build. Not yet: Cursor setup and installed hooks, notes, an agent inbox, Developer ID signing
+and a downloadable release. `README.md` keeps the user-facing status list; update it with each feature.

@@ -1,95 +1,212 @@
+<div align="center">
+
+<img src="App/Trackaro/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="112" alt="Trackaro icon">
+
 # Trackaro
 
-A fast, local, keyboard-first task manager for macOS that coding agents can drive over MCP.
+**The local task tracker for solo founders who build with Claude.**
 
-## Status
+Your AI agent reads and updates your tasks over MCP. You watch the progress live in a native Mac app.<br>
+No account, no server, no cloud. Just one SQLite file on your Mac.
 
-- **Phase 1, foundation (done).** SQLite store with teams, workflow states, issues, labels, relations, comments,
-  activity history, projects, milestones, cycles, saved views, a change log and full-text search. Issue rules:
-  `KEY-n` identifiers that are never reused, lifecycle timestamps, fractional ordering, sub-issues, inverse
-  relations, compare-and-set updates, team moves that keep the old identifier working.
-- **Phase 2, MCP server (done).** `trackaro-mcp` exposes 26 tools, 3 resources and 3 prompts over stdio. Agents
-  use names (`ENG-42`, `"In Progress"`, `"me"`), every change is recorded under the agent's name, and the app
-  shows agent edits live.
-- **Phase 3, core UI (done).** Sidebar (My issues, Agent activity, per-team Issues, Active, Backlog), a fast
-  AppKit issue list grouped by state, a details panel with editable fields and an activity feed that marks agent
-  changes, quick create, a `⌘K` command palette with issue search, type-to-filter pickers (`S` `P` `A` `L` `⇧E`),
-  `g` chords, multi-select, undo and redo that never overwrite an agent's newer change, a `?` shortcuts sheet,
-  `trackaro://` deep links, light and dark appearance, and an app icon.
-- **Kanban board (done).** `⌘B` switches any view to a board: drag cards between and within columns, arrow
-  keys to move around, `⇧←` `⇧→` to step status, and cards animate when an agent moves them.
-- **Filters and saved views (done).** `F` filters any list by status, priority, assignee, label, project or team,
-  `/` filters by text, `⇧F` clears. `⌘S` saves the page plus its filters as a view in the sidebar, and edits to a
-  view stay unsaved until you save or discard them. Agents see views in `get_workspace`, read them with
-  `search_issues` `view`, and create them with `save_view` (for example a "Ready for agent" board).
-- **Projects and cycles (done).** A Projects page lists every project with health, target date and progress; a
-  project's page shows its issues with status, health and lead menus, a progress bar and milestones. Each team has
-  Cycles and Current cycle pages with dates, days left, scope and points, a burn-up chart, and Complete cycle,
-  which can move unfinished issues to the next cycle. `g p` opens projects, `g c` the current cycle.
-- **Column automations (done).** Right-click a board column, Automate this column, and pick a repository folder.
-  When you move an issue into that column (or create one there), Trackaro runs `claude -p` in the folder with a
-  prompt about the issue; Claude works through the Trackaro tools, comments and moves the card. Runs and their
-  logs show in the issue's details panel. Agents' own moves never trigger a rule, so automations cannot loop.
-- **Agent pings (prototype).** When you change an issue, agents can hear about it: Claude Code channel push,
-  Claude Code and Cursor hooks, or a live `trackaro-mcp watch` feed. See [docs/agent-pings.md](docs/agent-pings.md).
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
+![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
+![26 MCP tools](https://img.shields.io/badge/MCP-26%20tools-6E56CF)
+![Local only](https://img.shields.io/badge/data-local%20only-2EA44F)
+![MIT license](https://img.shields.io/badge/license-MIT-blue)
 
-## Build
+[Why local](#why-local) · [Install](#install) · [Connect Claude](#connect-claude) · [MCP tools](#mcp-tools) · [Features](#features)
 
-Requires Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+<br>
 
-```
-swift test
-cd App && xcodegen generate && open Trackaro.xcodeproj
-```
+<img src="docs/images/board.png" alt="Trackaro board showing issues that Claude is working on" width="900">
 
-## Connect a coding agent
+</div>
 
-Build the server once:
+## Why local
+
+When you work alone, a cloud issue tracker solves problems you don't have. There is no team to sync with, no one to
+give permissions to and no seats to pay for. What you do get is another account, and a network trip every time your
+agent checks what to do next.
+
+In the AI era, speed is the advantage. So I built the tracker to live next to the agent instead of on someone else's
+server:
+
+| | Cloud tracker | Trackaro |
+| --- | --- | --- |
+| **Where your tasks live** | A vendor's servers | One SQLite file on your Mac |
+| **How your agent reaches them** | Over the internet | A local process, about 12 ms per call[^1] |
+| **Setup** | Account, workspace, API key or OAuth | One command |
+| **Built for** | Teams | One founder and their agents |
+
+[^1]: Median of 200 calls each to `search_issues`, `get_workspace` and `get_issues`, on a small workspace on an Apple
+    Silicon Mac. Your numbers will vary with the size of your workspace.
+
+## How it works
 
 ```
-swift build -c release --product trackaro-mcp
-install -m 755 .build/release/trackaro-mcp ~/.local/bin/trackaro-mcp
+   You                                       Claude Code, Cursor, any MCP client
+    │                                                       │
+    ▼                                                       ▼
+ Trackaro.app  ──────►  trackaro.sqlite  ◄──────  trackaro-mcp
+ native Mac app          on your Mac               local MCP server
 ```
 
-Claude Code:
+- **The agent works through tools.** It finds issues, starts them, comments on what it did and moves them along.
+- **You see it happen.** The app picks up agent changes within a third of a second, and every change is recorded
+  under the agent's name.
+- **It goes both ways.** Move a card or leave a comment, and Claude can [hear about it](docs/agent-pings.md) and react.
+- **The app can stay closed.** The server opens the same file directly, so agents work whether or not the app is
+  running.
 
-```
-claude mcp add --scope user trackaro -- ~/.local/bin/trackaro-mcp
+## Install
+
+You need macOS 14 or later, Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+(`brew install xcodegen`). Build the disk image from source:
+
+```bash
+git clone https://github.com/tecbay/tracker.git
 ```
 
-Cursor, in `~/.cursor/mcp.json`:
+```bash
+cd tracker
+```
+
+```bash
+scripts/make-dmg.sh
+```
+
+```bash
+open dist/Trackaro-0.1.0.dmg
+```
+
+Drag Trackaro to Applications. The app is a universal binary for Apple Silicon and Intel, and the MCP server is
+bundled inside it.
+
+> [!NOTE]
+> The script signs ad hoc by default, because the project has no Developer ID certificate yet. A copy you build
+> yourself opens normally. If you pass the `.dmg` to another Mac, macOS will block it on first open, and that person
+> has to allow it under **System Settings → Privacy & Security → Open Anyway**. To produce a signed, notarized build,
+> run the script with your own `SIGN_IDENTITY` and `NOTARY_PROFILE`; the top of
+> [`scripts/make-dmg.sh`](scripts/make-dmg.sh) shows how.
+
+## Connect Claude
+
+Register the bundled server with Claude Code once:
+
+```bash
+claude mcp add --scope user trackaro -- /Applications/Trackaro.app/Contents/Helpers/trackaro-mcp
+```
+
+Then just talk to it:
+
+> Create a team called Product with the key APP, then break the Stripe integration into sub-issues.
+
+> What's on my plate? Pick the most urgent issue and start on it.
+
+> Give me a standup of what moved since yesterday.
+
+For Cursor, add this to `~/.cursor/mcp.json`:
 
 ```json
-{ "mcpServers": { "trackaro": { "command": "/Users/YOU/.local/bin/trackaro-mcp" } } }
+{
+  "mcpServers": {
+    "trackaro": { "command": "/Applications/Trackaro.app/Contents/Helpers/trackaro-mcp" }
+  }
+}
 ```
 
-Options: `--channel` pushes your changes into Claude Code as they happen (see
-[docs/agent-pings.md](docs/agent-pings.md)), `--read-only` hides every tool that writes, `--agent-name "Claude (backend)"` records changes under a
-custom name, `--database PATH` (or `TRACKARO_DATABASE`) points at another database file.
+### Server options
 
-Agents can hand you links such as `trackaro://issue/ENG-42`, which open the issue in the app.
+| Option | What it does |
+| --- | --- |
+| `--channel` | Pushes your changes into Claude Code as they happen. See [agent pings](docs/agent-pings.md). |
+| `--read-only` | Hides every tool that writes. |
+| `--agent-name "Claude (backend)"` | Records changes under a custom name. |
+| `--database PATH` | Uses another database file. `TRACKARO_DATABASE` does the same. |
 
-The server opens the same database as the app, so agents can work whether or not the app is running, and the app
-picks up their changes within a third of a second.
+## MCP tools
 
-### Tools
+26 tools, designed so an agent can use them without guessing and without wasting tokens.
 
 | Area | Tools |
 | --- | --- |
-| Orientation | `get_workspace` |
-| Issues | `search_issues`, `get_issues`, `create_issue`, `create_sub_issues`, `update_issue`, `move_issue`, `bulk_update_issues`, `archive_issue` |
-| Conversation | `add_comment`, `list_comments`, `get_issue_history`, `set_relation`, `remove_relation`, `mark_duplicate` |
-| Planning | `list_projects`, `create_project`, `update_project`, `create_milestone`, `list_cycles`, `create_cycle`, `cycle_progress` |
-| Views | `save_view`, `delete_view` (views are listed by `get_workspace`) |
-| Setup | `create_label`, `create_team` |
+| **Orientation** | `get_workspace` |
+| **Issues** | `search_issues` `get_issues` `create_issue` `create_sub_issues` `update_issue` `move_issue` `bulk_update_issues` `archive_issue` |
+| **Conversation** | `add_comment` `list_comments` `get_issue_history` `set_relation` `remove_relation` `mark_duplicate` |
+| **Planning** | `list_projects` `create_project` `update_project` `create_milestone` `list_cycles` `create_cycle` `cycle_progress` |
+| **Views** | `save_view` `delete_view` |
+| **Setup** | `create_label` `create_team` |
 
-Resources: `trackaro://workspace`, `trackaro://cycles/active`, `trackaro://issue/{identifier}`.
-Prompts: `standup`, `triage`, `plan_work`.
+**Resources:** `trackaro://workspace`, `trackaro://cycles/active`, `trackaro://issue/{identifier}`<br>
+**Prompts:** `standup`, `triage`, `plan_work`
+
+What makes them pleasant for an agent:
+
+- **Names in, names out.** Tools accept `ENG-42`, `"In Progress"`, `"me"` (you) and `"self"` (the agent).
+- **Misses teach.** A name that matches nothing returns the valid options, so the agent corrects itself.
+- **Omitted stays, null clears.** The same rule in every tool.
+- **Batches are all or nothing.** Every item is checked first, so one bad name writes nothing.
+- **Compact output.** Minified JSON with empty fields dropped. Listing tools return summaries.
+- **Safe undo.** Undo in the app refuses rather than overwrite an agent's newer change.
+
+## Features
+
+<div align="center">
+<img src="docs/images/list.png" alt="Trackaro issue list with the details panel open" width="900">
+</div>
+
+- **Issues:** sub-issues, labels, relations, comments, estimates, due dates and a full activity history.
+- **Board and list:** `⌘B` switches views. Drag cards between columns and watch them animate when an agent moves them.
+- **Keyboard first:** `⌘K` command palette, `S` `P` `A` `L` pickers, `g` chords, multi-select, and `?` for every shortcut.
+- **Filters and saved views:** `F` to filter, `/` to search, `⌘S` to save. Agents can use and create views too.
+- **Projects and cycles:** milestones, health, progress bars, burn-up charts and cycle rollover.
+- **Column automations:** drop a card in a column and Trackaro runs `claude -p` in the repository you chose. Only your
+  own moves trigger a rule, so agents can't set off loops.
+- **Agent pings (prototype):** Claude Code channel push, Claude Code and Cursor hooks, or a live `watch` feed.
+- **Deep links:** agents can hand you links like `trackaro://issue/ENG-42` that open the issue in the app.
+
+## Your data
+
+Everything lives in one file:
+
+```
+~/Library/Application Support/Trackaro/trackaro.sqlite
+```
+
+Trackaro has no accounts, no telemetry and no networking code. Back the file up however you like. Two things do leave
+your Mac, and they come from your own tools rather than from Trackaro: your agent sends what it reads to its model
+provider, and column automations run the shell command you configure.
+
+## Develop
+
+```bash
+swift test
+```
+
+```bash
+cd App && xcodegen generate && open Trackaro.xcodeproj
+```
+
+The core, MCP server and UI logic are plain Swift packages with tests, and the SwiftUI app sits on top.
+[`CLAUDE.md`](CLAUDE.md) holds the project rules, and the
+[`trackaro-architecture`](.claude/skills/trackaro-architecture/SKILL.md) skill maps the code. Use `TRACKARO_DATABASE`
+when testing by hand so your real tasks stay untouched.
+
+> [!WARNING]
+> Trackaro is at an early stage (0.1.0), and schema upgrades between versions aren't guaranteed yet. Keep a backup of
+> your database.
 
 ## Roadmap
 
-1. Foundation (done)
-2. MCP server (done)
-3. Core UI (done)
-4. Planning: board, filters, saved views, projects and cycles (done)
-5. Notes, local inbox and reminders, release signing
+- [x] Local store and MCP server
+- [x] Native app with keyboard layer and undo
+- [x] Board, filters, saved views, projects and cycles
+- [x] Column automations and agent pings
+- [x] `.dmg` build
+- [ ] Notes, local inbox and reminders
+- [ ] Developer ID signing and a downloadable release
+
+## License
+
+[MIT](LICENSE)

@@ -18,6 +18,7 @@ Tests/TrackaroMCPTests   Tests through a real MCP Client over InMemoryTransport 
 App/project.yml          XcodeGen spec for the macOS app (the .xcodeproj is generated, not committed)
 App/Trackaro             SwiftUI app: Model (AppModel and extensions), Views, Keyboard, Design
 scripts/make-icon.swift  Draws the app icon into App/Trackaro/Assets.xcassets
+scripts/make-dmg.sh      Builds the universal app with trackaro-mcp inside and packs dist/Trackaro-<version>.dmg
 ```
 
 For the architecture map, data flows, change recipes and the on-screen verification routine, use the
@@ -31,6 +32,7 @@ swift test                                    run all tests (Core, Kit, MCP)
 cd App && xcodegen generate                   regenerate Trackaro.xcodeproj after editing project.yml
 xcodebuild -project App/Trackaro.xcodeproj -scheme Trackaro -derivedDataPath .build/xcode build
 swift build -c release --product trackaro-mcp  build the MCP server binary
+scripts/make-dmg.sh                           build dist/Trackaro-<version>.dmg (ad hoc signed unless SIGN_IDENTITY is set)
 ```
 
 The database lives at `~/Library/Application Support/Trackaro/trackaro.sqlite`. Both the app and `trackaro-mcp`
