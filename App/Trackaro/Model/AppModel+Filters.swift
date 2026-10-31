@@ -48,7 +48,7 @@ extension AppModel {
             IssueFilter(projectIds: [id])
         case let .cycle(id):
             IssueFilter(teamIds: snapshot?.cyclesById[id].map { [$0.teamId] })
-        case .agentActivity, .view, .projects, .cycles:
+        case .agentActivity, .view, .projects, .cycles, .artifacts:
             IssueFilter()
         }
     }

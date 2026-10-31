@@ -46,6 +46,11 @@ final class AppModel {
     /// When each completed issue of the open cycle page was completed, for its burn-up chart.
     private(set) var cycleCompletions: [Date] = []
     private(set) var loadError: String?
+    /// The artifacts page's list, and the one open in its viewer with its content.
+    private(set) var artifacts: [ArtifactSummary] = []
+    private(set) var openArtifact: Artifact?
+    /// How many artifacts the open project page has.
+    private(set) var projectArtifactCount = 0
 
     // MARK: Navigation and selection
 
@@ -63,6 +68,12 @@ final class AppModel {
 
     var currentItem: SidebarItem { sidebarSelection ?? .myIssues }
     var selection: Set<String> = []
+    var artifactSelection: String? {
+        didSet {
+            guard artifactSelection != oldValue else { return }
+            loadOpenArtifact()
+        }
+    }
     private(set) var cursor: String?
     private var anchor: String?
 
@@ -97,6 +108,10 @@ final class AppModel {
     var filterFocusRequest = 0
     var automationsPresented = false
     var connectAgentPresented = false
+    var backupsPresented = false
+    /// The backup waiting for the user to confirm replacing everything with it.
+    var restoreCandidate: URL?
+    var isRestoring = false
     var newProjectPresented = false
     /// The cycle waiting for the user to choose what happens to its unfinished issues.
     var cycleToComplete: Cycle?
@@ -123,7 +138,7 @@ final class AppModel {
     var automationRunner: AutomationRunner?
     private var rowIds: [String] = []
 
-    static let log = Logger(subsystem: "app.trackaro.Trackaro", category: "sync")
+    nonisolated static let log = Logger(subsystem: "app.trackaro.Trackaro", category: "sync")
     /// How long an agent's change stays flagged on its row or card.
     static let recentAgentWindow: TimeInterval = 15 * 60
     private static let layoutsKey = "layouts"
@@ -152,6 +167,7 @@ final class AppModel {
             reloadAll()
             startAutomations(store: store)
             watchForExternalChanges()
+            makeDailyBackup()
         } catch {
             loadError = String(describing: error)
         }
@@ -172,6 +188,8 @@ final class AppModel {
              let .project(id) where snapshot?.projectsById[id] == nil, let .cycle(id) where snapshot?.cyclesById[id] == nil,
              let .cycles(id) where snapshot?.teamsById[id] == nil:
             sidebarSelection = .myIssues
+        case let .artifacts(id?) where snapshot?.projectsById[id] == nil:
+            sidebarSelection = .artifacts(nil)
         default:
             break
         }
@@ -220,6 +238,13 @@ final class AppModel {
                 issues = try store.queryIssues(filter.applied(to: page)).issues
                 grouping = .category
                 projectProgress = try store.projectProgress(projectId: id)
+                projectArtifactCount = try store.artifactCount(projectId: id)
+            case let .artifacts(projectId):
+                issues = []
+                artifacts = try store.artifacts(projectId: projectId)
+                if let selected = artifactSelection, !artifacts.contains(where: { $0.id == selected }) { artifactSelection = nil }
+                if artifactSelection == nil { artifactSelection = artifacts.first?.id }
+                loadOpenArtifact()
             case let .cycle(id):
                 issues = try store.queryIssues(filter.applied(to: page)).issues
                 let progress = try store.cycleProgress(cycleId: id)
@@ -269,6 +294,29 @@ final class AppModel {
             return BoardBuilder.stateColumns(items, states: states)
         }
         return BoardBuilder.categoryColumns(items, snapshot: snapshot)
+    }
+
+    /// Reads an artifact's content only when another one is opened or this one changed: it can be megabytes, and
+    /// this runs on every reload.
+    private func loadOpenArtifact() {
+        guard let store, let id = artifactSelection, let listed = artifacts.first(where: { $0.id == id }) else {
+            openArtifact = nil
+            return
+        }
+        if let openArtifact, openArtifact.summary == listed { return }
+        openArtifact = try? store.artifact(id)
+    }
+
+    /// After a restore every id and undo step may be gone, and the local user may be a different row.
+    func resetAfterRestore() {
+        guard let store else { return }
+        user = try? store.localUser()
+        history = EditHistory()
+        selection = []
+        cursor = nil
+        artifactSelection = nil
+        sidebarSelection = .myIssues
+        reloadAll()
     }
 
     private func loadDetail() {

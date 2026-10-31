@@ -50,10 +50,15 @@ extension TrackaroStore {
     /// Filtered-out events still advance the cursor, so they are skipped rather than returned later.
     /// `memberKinds` keeps only events by those kinds of member (for example `[.user]` for what the human did);
     /// `excludingMember` drops one member's own events, so an agent is not told about its own changes.
+    ///
+    /// A restore can leave a cursor on either side of the restored rows, so a cursor before the restore point or past
+    /// the head starts from the restore point. Restored history is never reported as new: an automation must not
+    /// fire on it.
     public func feed(
         after cursor: FeedCursor, memberKinds: Set<MemberKind>? = nil, excludingMember: String? = nil, limit: Int = 200
     ) throws -> (events: [FeedEvent], cursor: FeedCursor) {
         try writer.read { db in
+            let cursor = try settled(cursor, db)
             let activityRows = try Row.fetchAll(db, sql: "SELECT rowid AS feedRow, * FROM issueActivity WHERE rowid > ? ORDER BY rowid LIMIT ?",
                                                 arguments: [cursor.activity, limit])
             let commentRows = try Row.fetchAll(db, sql: "SELECT rowid AS feedRow, * FROM comment WHERE rowid > ? AND deletedAt IS NULL ORDER BY rowid LIMIT ?",
@@ -89,5 +94,18 @@ extension TrackaroStore {
             let ordered = events.sorted { ($0.0.at, $0.1) < ($1.0.at, $1.1) }.map(\.0)
             return (ordered, next)
         }
+    }
+
+    private func settled(_ cursor: FeedCursor, _ db: Database) throws -> FeedCursor {
+        guard let point = try Row.fetchOne(db, sql: "SELECT activity, comment FROM restorePoint") else { return cursor }
+        let headActivity = try Int64.fetchOne(db, sql: "SELECT MAX(rowid) FROM issueActivity") ?? 0
+        let headComment = try Int64.fetchOne(db, sql: "SELECT MAX(rowid) FROM comment") ?? 0
+        func settled(_ position: Int64, floor: Int64, head: Int64) -> Int64 {
+            position < floor || position > head ? floor : position
+        }
+        return FeedCursor(
+            activity: settled(cursor.activity, floor: point["activity"], head: headActivity),
+            comment: settled(cursor.comment, floor: point["comment"], head: headComment)
+        )
     }
 }

@@ -8,6 +8,8 @@ import Foundation
 ///     trackaro://team/ENG            (or /ENG/active, /ENG/backlog)
 ///     trackaro://view/Ready%20for%20agent   (a saved view, by name or id)
 ///     trackaro://projects            trackaro://project/mobile-launch   (slug, name or id)
+///     trackaro://artifacts           trackaro://artifacts/mobile-launch  (one project's)
+///     trackaro://artifact/mobile-launch/spec.md   (project slug, name or id, then artifact name)
 ///     trackaro://cycles/ENG          trackaro://cycle/ENG/current       (or a cycle number)
 ///     trackaro://command/palette     (any AppCommand)
 public enum AppLink: Equatable, Sendable {
@@ -18,6 +20,8 @@ public enum AppLink: Equatable, Sendable {
     case view(String)
     case projects
     case project(String)
+    case artifacts(project: String?)
+    case artifact(project: String, name: String)
     case cycles(teamKey: String)
     case cycle(teamKey: String, cycle: String)
     case command(AppCommand)
@@ -42,6 +46,12 @@ public enum AppLink: Equatable, Sendable {
             self = .projects
         case ("project", 1):
             self = .project(parts[0])
+        case ("artifacts", 0):
+            self = .artifacts(project: nil)
+        case ("artifacts", 1):
+            self = .artifacts(project: parts[0])
+        case ("artifact", 2):
+            self = .artifact(project: parts[0], name: parts[1])
         case ("cycles", 1):
             self = .cycles(teamKey: parts[0])
         case ("cycle", 2):
@@ -54,6 +64,14 @@ public enum AppLink: Equatable, Sendable {
         default:
             return nil
         }
+    }
+
+    public static func artifactURL(project: String, name: String) -> URL? {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove("/")
+        guard let project = project.addingPercentEncoding(withAllowedCharacters: allowed),
+              let name = name.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
+        return URL(string: "\(scheme)://artifact/\(project)/\(name)")
     }
 
     public static func issueURL(_ identifier: String) -> URL? {

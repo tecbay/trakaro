@@ -17,7 +17,7 @@ enum IssueTools {
     static var editableFields: [String: Value] {
         [
             "title": JSONSchema.string("New title."),
-            "description": JSONSchema.string("Full markdown description. Replaces the existing one.", nullable: true),
+            "description": JSONSchema.string("Full description in GitHub-flavored Markdown: headings, lists, task lists, tables, code blocks and links all show formatted in the app. Replaces the existing one.", nullable: true),
             "state": JSONSchema.string("Workflow state name in the issue's team, such as \"In Progress\". A category name works when it is unambiguous."),
             "priority": JSONSchema.string("Priority.", oneOf: priorityNames),
             "assignee": JSONSchema.string("\"me\" for the user, \"self\" for you, a member name, or null to unassign.", nullable: true),
@@ -261,7 +261,7 @@ enum IssueTools {
             "parent": issueRef,
             "issues": JSONSchema.array("Sub-issues to create, in order.", of: JSONSchema.object([
                 "title": JSONSchema.string("Title."),
-                "description": JSONSchema.string("Markdown description."),
+                "description": JSONSchema.string("Description in GitHub-flavored Markdown."),
                 "state": JSONSchema.string("Workflow state name."),
                 "priority": JSONSchema.string("Priority.", oneOf: priorityNames),
                 "assignee": JSONSchema.string("\"me\", \"self\" or a member name."),

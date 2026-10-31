@@ -5,7 +5,39 @@ enum Schema {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1", migrate: createInitialSchema)
         migrator.registerMigration("v2-automations", migrate: createAutomations)
+        migrator.registerMigration("v3-artifacts-and-restore", migrate: createArtifactsAndRestorePoint)
         return migrator
+    }
+
+    /// Only adds tables, so a `trackaro-mcp` from an older release keeps working on a database upgraded by a newer
+    /// app. Keep later migrations additive for the same reason. `mimeType` has no CHECK, so new kinds need no rebuild.
+    private static func createArtifactsAndRestorePoint(_ db: Database) throws {
+        try db.execute(sql: """
+            CREATE TABLE artifact (
+                id TEXT PRIMARY KEY NOT NULL,
+                projectId TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                summary TEXT NOT NULL DEFAULT '',
+                mimeType TEXT NOT NULL,
+                content BLOB NOT NULL,
+                byteCount INTEGER NOT NULL,
+                creatorId TEXT NOT NULL REFERENCES member(id) ON DELETE RESTRICT,
+                updaterId TEXT NOT NULL REFERENCES member(id) ON DELETE RESTRICT,
+                version INTEGER NOT NULL DEFAULT 1,
+                createdAt DATETIME NOT NULL,
+                updatedAt DATETIME NOT NULL,
+                deletedAt DATETIME
+            );
+            CREATE UNIQUE INDEX artifact_project_name ON artifact(projectId, name COLLATE NOCASE) WHERE deletedAt IS NULL;
+            CREATE INDEX artifact_project_updated ON artifact(projectId, updatedAt);
+
+            CREATE TABLE restorePoint (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                activity INTEGER NOT NULL,
+                comment INTEGER NOT NULL,
+                restoredAt DATETIME NOT NULL
+            );
+            """)
     }
 
     private static func createAutomations(_ db: Database) throws {

@@ -25,11 +25,10 @@ private struct IssueInspector: View {
     let detail: IssueDetail
 
     @State private var title = ""
-    @State private var description = ""
     @State private var comment = ""
     @FocusState private var focus: Field?
 
-    enum Field { case title, description, comment }
+    enum Field { case title, comment }
 
     private var issue: Issue { detail.issue }
 
@@ -39,7 +38,7 @@ private struct IssueInspector: View {
                 header
                 titleEditor
                 properties
-                descriptionEditor
+                DescriptionSection(issue: issue)
                 links
                 if !detail.runs.isEmpty { runs }
                 Divider()
@@ -50,13 +49,10 @@ private struct IssueInspector: View {
         }
         .onAppear {
             title = issue.title
-            description = issue.description
         }
         .onChange(of: issue.title) { _, newValue in if focus != .title { title = newValue } }
-        .onChange(of: issue.description) { _, newValue in if focus != .description { description = newValue } }
         .onChange(of: focus) { oldValue, _ in
             if oldValue == .title { model.setTitle(title, of: issue.id) }
-            if oldValue == .description { model.setDescription(description, of: issue.id) }
         }
     }
 
@@ -236,27 +232,6 @@ private struct IssueInspector: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var descriptionEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Description").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            TextEditor(text: $description)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .focused($focus, equals: .description)
-                .frame(minHeight: 90)
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor).opacity(0.5)))
-                .overlay(alignment: .topLeading) {
-                    if description.isEmpty && focus != .description {
-                        Text("Add a description in Markdown")
-                            .foregroundStyle(.tertiary)
-                            .padding(11)
-                            .allowsHitTesting(false)
-                    }
-                }
-        }
-    }
-
     @ViewBuilder
     private var links: some View {
         let all = [detail.parent].compactMap { $0 } + detail.children + detail.relations
@@ -392,8 +367,7 @@ private struct FeedRow: View {
                         Text(RelativeTime.string(entry.at)).foregroundStyle(.tertiary)
                     }
                     .font(.callout)
-                    Text((try? AttributedString(markdown: body, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(body))
-                        .textSelection(.enabled)
+                    MarkdownView(source: body, keepingLineBreaks: true)
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)

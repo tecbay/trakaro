@@ -26,6 +26,8 @@ struct TrackaroApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("New Issue") { model.perform(.newIssue) }
                     .keyboardShortcut("n")
+                Divider()
+                Button("Backup and Restore…") { model.perform(.backups) }
             }
             CommandGroup(after: .sidebar) {
                 Button("Command Palette") { model.perform(.palette) }
@@ -46,6 +48,8 @@ struct TrackaroApp: App {
                 Button("Team Issues") { model.perform(.goIssues) }
                 Button("Active") { model.perform(.goActive) }
                 Button("Backlog") { model.perform(.goBacklog) }
+                Divider()
+                Button("Artifacts") { model.perform(.goArtifacts) }
             }
             CommandGroup(replacing: .help) {
                 Button("Keyboard Shortcuts") { model.perform(.shortcuts) }

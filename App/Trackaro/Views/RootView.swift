@@ -12,7 +12,11 @@ struct RootView: View {
                 .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
         } detail: {
             IssueListPane()
-                .inspector(isPresented: $model.inspectorPresented) {
+                .inspector(isPresented: Binding(
+                    // The artifacts page has its own viewer in that space.
+                    get: { model.inspectorPresented && !model.currentItem.isArtifacts },
+                    set: { model.inspectorPresented = $0 }
+                )) {
                     InspectorView()
                         .inspectorColumnWidth(min: 320, ideal: 380, max: 560)
                 }
@@ -38,6 +42,9 @@ struct RootView: View {
         }
         .sheet(isPresented: $model.connectAgentPresented) {
             ConnectAgentView()
+        }
+        .sheet(isPresented: $model.backupsPresented) {
+            BackupsView()
         }
         .sheet(isPresented: $model.newProjectPresented) {
             NewProjectView()
@@ -77,6 +84,8 @@ struct SidebarView: View {
             Section("Projects") {
                 Label("All projects", systemImage: SidebarItem.projects.symbol)
                     .tag(SidebarItem.projects)
+                Label("Artifacts", systemImage: SidebarItem.artifacts(nil).symbol)
+                    .tag(SidebarItem.artifacts(nil))
                 ForEach(model.snapshot?.projects.filter { $0.archivedAt == nil && $0.status.isActive } ?? []) { project in
                     Label(project.name, systemImage: "cube")
                         .tag(SidebarItem.project(project.id))
@@ -142,6 +151,8 @@ struct IssueListPane: View {
                 ContentUnavailableView("Could not open the database", systemImage: "exclamationmark.triangle", description: Text(error))
             } else if model.currentItem == .projects {
                 ProjectsOverview()
+            } else if case let .artifacts(projectId) = model.currentItem {
+                ArtifactsPage(projectId: projectId)
             } else if case let .cycles(teamId) = model.currentItem {
                 CyclesOverview(teamId: teamId)
             } else if model.layout == .board, !model.columns.isEmpty {

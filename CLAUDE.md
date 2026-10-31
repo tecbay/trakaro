@@ -10,7 +10,7 @@ Package.swift            TrackaroCore, TrackaroKit, TrackaroMCP, the trackaro-mc
 Sources/TrackaroCore     Domain model, schema, store, ordering, queries
 Sources/TrackaroMCP      MCP tools, resources, prompts (official swift-sdk, pinned exactly)
 Sources/TrackaroKit      UI logic with no UI: key bindings and chords, the command catalog, fuzzy matching,
-                         undo history, list rows, activity text, deep links, connecting agent tools
+                         undo history, list rows, activity text, Markdown, deep links, connecting agent tools
 Sources/trackaro-mcp     stdio entry point
 Tests/TrackaroCoreTests  Swift Testing suites, mirroring Sources
 Tests/TrackaroKitTests   Tests for TrackaroKit
@@ -62,6 +62,14 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
   the old one in `issueAlias`.
 - **State timestamps follow `StateTimestamps.entering`.** Do not set `startedAt`, `completedAt` or `canceledAt` by hand.
 - **Schema changes are new migrations** in `Schema.swift`. Never edit a shipped migration.
+- **People have real data, so upgrades must not break it.** Migrations only add: new tables, or new nullable or
+  defaulted columns. A `trackaro-mcp` from an older release keeps running on an upgraded file, so never drop or rename
+  anything, and never add a case to an enum with a CHECK without the rebuild in the recipes. `TrackaroStore.open` copies
+  the database to `Backups` before migrating. `UpgradeTests` builds a database as 0.1.1 left it; keep it passing.
+- **Never swap the database file.** A restore writes through SQLite's backup API so connected `trackaro-mcp` processes
+  see it. Restored history is not news: `feed(after:)` starts from the restore point, so automations cannot fire on it.
+- **Artifact content stays out of listings and the change log.** Read and log `ArtifactSummary`; only
+  `artifact(_:projectId:)` loads the bytes.
 - **Two processes, one file.** The app and `trackaro-mcp` share the database in WAL mode with a busy timeout. The
   app notices other writers by polling `latestChangeSeq()`. Never cache data across that boundary.
 
@@ -84,6 +92,9 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
   `TRACKARO_*` environment variables and is never spliced into the command string; keep it that way, and keep
   `runnerRunsTheCommandWithIssueTextOnlyInTheEnvironment` passing.
 - **Colors come from `Theme` or the system.** No literal colors in views.
+- **Text and pages from agents stay inert.** `Markdown` keeps only web, mail and `trackaro:` links and never fetches an
+  image. `SafeHTMLView` runs with scripts off and every remote load blocked. Opening an artifact elsewhere uses an
+  extension chosen from its kind, so an agent's `.command` file cannot run. No backup or restore tool exists in MCP.
 
 ## MCP tool design
 

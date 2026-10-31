@@ -9,8 +9,19 @@
   `Tests/TrackaroCoreTests/Support/TestSupport.swift`) so timestamps are distinct and ordered.
 - Location: `TrackaroStore.defaultURL()` is `~/Library/Application Support/Trackaro/trackaro.sqlite`. The app and
   the CLI both honour `TRACKARO_DATABASE`.
-- Migrations live in `Database/Schema.swift`: `v1` (everything up to saved views) and `v2-automations`. Add a new
-  `registerMigration` for any schema change; never edit a shipped one.
+- Migrations live in `Database/Schema.swift`: `v1` (everything up to saved views), `v2-automations` and
+  `v3-artifacts-and-restore`. Add a new `registerMigration` for any schema change; never edit a shipped one. Keep them
+  additive, since an older `trackaro-mcp` may still be running on the upgraded file.
+- `open(at:)` copies a database with pending migrations to `Backups/` first. If the copy fails, the upgrade does not run.
+
+## Backup and restore
+
+`Store/TrackaroStore+Backup.swift`. `backup(to:)` uses SQLite's backup API and leaves one plain file. `BackupFolder`
+names, lists and prunes the copies beside the database (`daily` keeps 7, `before-upgrade` and `before-restore` keep 5,
+`manual` is never pruned). `restore(from:safetyCopy:)` works on a private copy: it refuses a damaged file, another
+SQLite file, or a backup with migrations this build does not know; migrates it; re-adds agent members so running
+sessions can still write; records the `restorePoint`; saves the safety copy; then writes into the live database through
+the backup API. Nothing swaps the file on disk.
 
 ## Tables
 
@@ -29,6 +40,8 @@
 | `project`, `milestone`, `cycle` | same names | Projects span teams; cycles belong to one team and are numbered per team. |
 | `savedView` | `SavedView` | `filter` is `IssueFilter` JSON, `layout` list or board, `sortKey` orders the sidebar. Names unique ignoring case. |
 | `automation`, `automationRun` | `Automation`, `AutomationRun` | Column rules and their runs (v2). Runs keep a log file path and status. |
+| `artifact` | `ArtifactSummary`, `Artifact` | A project's file, in the database as a blob, up to 25 MB. Name unique per project ignoring case; saving the same name replaces it and bumps `version`. Soft delete via `deletedAt`. Kind comes from `mimeType`, which has no CHECK. |
+| `restorePoint` | none | One row after a restore: the feed head at that moment. `feed(after:)` moves a cursor before it, or past the head, to this point, so restored history is never reported as new. |
 | `changeLog` | `ChangeEntry` | Append-only, every write of every model. `seq` is the change cursor the app polls. |
 | `issueSearch` | FTS5 | External content over `issue` (identifier, title, description), kept in sync by triggers. |
 

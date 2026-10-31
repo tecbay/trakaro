@@ -35,3 +35,16 @@ struct AppLinkTests {
         #expect(AppLink(url: url) == .issue("ENG-7"))
     }
 }
+
+@Suite("Artifact links")
+struct ArtifactLinkTests {
+    @Test func artifactLinksRoundTripNamesWithSpacesAndSlashes() throws {
+        let url = try #require(AppLink.artifactURL(project: "launch", name: "Q3 plan/final.md"))
+        #expect(AppLink(url: url) == .artifact(project: "launch", name: "Q3 plan/final.md"))
+    }
+
+    @Test func artifactPages() throws {
+        #expect(AppLink(url: try #require(URL(string: "trackaro://artifacts"))) == .artifacts(project: nil))
+        #expect(AppLink(url: try #require(URL(string: "trackaro://artifacts/launch"))) == .artifacts(project: "launch"))
+    }
+}

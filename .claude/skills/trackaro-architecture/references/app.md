@@ -17,6 +17,8 @@ regenerate after adding or removing files). Not sandboxed, hardened runtime, ad-
 | `AppModel+Filters.swift` | Per-page filters, saved views (save, update, revert, delete), `pageFilter(for:)`, `pageQuery(for:)`, filter picker items |
 | `AppModel+Planning.swift` | `openProject`, `openCycle`, `currentCycle(teamId:)`, create project, milestone and cycle, update project, complete cycle with roll-over |
 | `AppModel+Automations.swift` | Creating and ticking the `AutomationRunner`, run events to toasts, run now, stop, open log, save and delete rules |
+| `AppModel+Artifacts.swift` | `goToArtifacts`, save and open a copy (an extension chosen from the kind), delete |
+| `AppModel+Backups.swift` | `backupFolder`, the daily copy on launch, backup and restore panels, `restore(from:)` (suspends automations, then `resetAfterRestore`) |
 | `AppModel+Links.swift` | `open(_ url:)` for every `AppLink` |
 | `IssueDetail.swift` | Everything the inspector shows for one issue, loaded in one pass, including the last five automation runs |
 | `Navigation.swift` | `SidebarItem` |
@@ -24,8 +26,8 @@ regenerate after adding or removing files). Not sandboxed, hardened runtime, ad-
 ## Pages (SidebarItem)
 
 `myIssues`, `agentActivity`, `team(teamId, .all | .active | .backlog)`, `view(savedViewId)`, `projects`,
-`project(id)`, `cycles(teamId)`, `cycle(id)`. Each has a `storageKey` (for per-page layout and filter), `title`,
-`symbol` and `emptyMessage`. `isOverview` pages (`projects`, `cycles`) show cards instead of an issue list and hide
+`project(id)`, `artifacts(projectId or nil)`, `cycles(teamId)`, `cycle(id)`. Each has a `storageKey` (for per-page layout and filter), `title`,
+`symbol` and `emptyMessage`. `isOverview` pages (`projects`, `cycles`, `artifacts`) show cards instead of an issue list and hide
 the filter bar and layout picker.
 
 To show issues, a page contributes `pageFilter(for:)` (an `IssueFilter`, also what "Save as view" captures) and
@@ -76,6 +78,13 @@ Rows note which agent changed an issue in the last 15 minutes (`recentAgentWindo
   with Swift Charts, new project sheet), `AutomationsView.swift`, `QuickCreateView.swift` (defaults its team,
   state, assignee, project and cycle from the current page), `ConnectAgentView.swift` (one-click MCP setup over
   `AgentConnector` in Kit, opened by the sidebar button or the `connectAgent` command).
+- `MarkdownView.swift`: `MarkdownView` draws `Markdown.blocks` from Kit, used for descriptions, comments and artifacts.
+  `MarkdownEditor` wraps `NSTextView` because the toolbar needs the selection, which `TextEditor` lacks on macOS 14.
+  `DescriptionSection` reads, edits and warns when an agent changes the text mid-edit; it saves on Done or on leaving
+  the issue. The larger sheet adds a live preview.
+- `ArtifactsView.swift`: `ArtifactsPage` is a list and a viewer by kind: Markdown, `SafeHTMLView` (scripts off, remote
+  loads blocked), `PlainTextViewer`, image, `PDFViewer`, or save-only. The inspector is hidden on this page.
+- `BackupsView.swift`: back up, restore from a file, or restore an automatic copy.
 - `Design/Theme.swift`: colour tokens (`Theme.accent`, `agent`, `danger`, `high`, state and priority colours),
   `Symbols`, `RelativeTime`. No literal colours in views.
 
@@ -98,5 +107,6 @@ next launch.
 ## Deep links
 
 `AppLink` (Kit) parses and `AppModel+Links` acts: `issue/ENG-1`, `my-issues`, `agent-activity`,
-`team/ENG[/active|/backlog]`, `view/<name or id>`, `projects`, `project/<slug, name or id>`, `cycles/ENG`,
+`team/ENG[/active|/backlog]`, `view/<name or id>`, `projects`, `project/<slug, name or id>`, `artifacts[/<project>]`,
+`artifact/<project>/<name>`, `cycles/ENG`,
 `cycle/ENG/<number or current>`, `command/<AppCommand rawValue>`. Unknown links show an error toast.

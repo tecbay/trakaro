@@ -15,7 +15,14 @@ in-memory database runs the migration with the new case) and then fails on every
 the user's, because its stored CHECK still has the old list. Adding a case therefore needs a new migration that
 rebuilds the table with the wider CHECK (SQLite cannot alter a CHECK): create the new table, copy rows, drop the
 old one, rename, recreate indexes and triggers. Test it by opening a database created before the change, not
-only an in-memory one.
+only an in-memory one. Prefer a column with no CHECK when the value set will grow, as `artifact.mimeType` does.
+
+## Upgrade safety
+
+Real databases exist. Before shipping a schema change, add its case to `UpgradeTests`, then run the real thing on a
+copy: create a database with the last released `trackaro-mcp`, open it with the new build while the old one is still
+connected, compare every table, and confirm the old server can read and write the result. Build the last release's
+binary from its git tag if `.build/dmg-stage` has moved on.
 
 ## Add a field to issues
 

@@ -8,7 +8,7 @@ public enum AppCommand: String, CaseIterable, Sendable {
     case goMyIssues, goAgentActivity, goIssues, goActive, goBacklog, goProjects, goCycles
     case newProject, newCycle, completeCycle
     case filter, searchInView, clearFilters, saveView, revertView, deleteView
-    case automations, runAutomation, connectAgent
+    case automations, runAutomation, connectAgent, backups, goArtifacts
     case next, previous, extendDown, extendUp, toggleSelect, open, clearSelection
     case cardUp, cardDown, columnLeft, columnRight, moveToPreviousStatus, moveToNextStatus
     case setStatus, setPriority, setAssignee, setLabels, setEstimate, assignToMe, copyIdentifier, archive
@@ -38,6 +38,8 @@ public enum AppCommand: String, CaseIterable, Sendable {
         case .automations: KeyCommand(rawValue, "Column automations", section: "General", binding: nil)
         case .runAutomation: KeyCommand(rawValue, "Run this column's automation now", section: "Issue", binding: nil, scope: .list)
         case .connectAgent: KeyCommand(rawValue, "Connect an agent", section: "General", binding: nil)
+        case .backups: KeyCommand(rawValue, "Backup and restore", section: "General", binding: nil)
+        case .goArtifacts: KeyCommand(rawValue, "Go to artifacts", section: "Navigation", binding: "g f")
 
         case .filter: KeyCommand(rawValue, "Filter", section: "View", binding: "f")
         case .searchInView: KeyCommand(rawValue, "Filter by text", section: "View", binding: "/")

@@ -4,7 +4,7 @@ import TrackaroCore
 
 /// The Trackaro MCP server: tools, resources and prompts over any MCP transport.
 public enum TrackaroMCPServer {
-    public static let version = "0.1.1"
+    public static let version = "0.2.0"
 
     public struct Options: Sendable {
         /// Hide every tool that writes. The server can still read everything.
@@ -25,7 +25,7 @@ public enum TrackaroMCPServer {
     }
 
     static var allTools: [ToolDefinition] {
-        WorkspaceTools.all + IssueTools.all + ConversationTools.all + PlanningTools.all + ViewTools.all
+        WorkspaceTools.all + IssueTools.all + ConversationTools.all + PlanningTools.all + ViewTools.all + ArtifactTools.all
     }
 
     static func tools(for options: Options) -> [ToolDefinition] {
@@ -166,6 +166,8 @@ enum Instructions {
                 "To change status, set state with update_issue, or use move_issue to also reorder or change team. Omitted fields stay as they are; null clears a field.",
                 "When you start an issue, move it to a started state such as In Progress. When you finish, add_comment with what you did and how you verified it, then move it to a review or completed state.",
                 "Prefer search_issues (compact) to find work and get_issues for full detail. Batch with create_sub_issues and bulk_update_issues instead of many single calls.",
+                "Issue descriptions and comments show as GitHub-flavored Markdown in the app: headings, lists, task lists, tables, code blocks and links. Write the context the next person or agent will need, formatted so it can be scanned.",
+                "Use save_artifact to keep anything longer-lived than a comment, such as a spec, plan, report, screenshot or HTML page, in its project. The user browses artifacts in the app; list_artifacts and get_artifact read them back.",
             ]
         }
         if channel {

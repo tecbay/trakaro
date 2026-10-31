@@ -17,6 +17,12 @@ public final class TrackaroStore: Sendable {
         }
     }
 
+    /// Skips migrating, for tests that build a database as an older release left it.
+    init(unmigrated writer: any DatabaseWriter) {
+        self.writer = writer
+        clock = { Date() }
+    }
+
     /// Opens or creates the database file, in WAL mode so readers never block the writer.
     ///
     /// The app and the `trackaro-mcp` process open the same file. SQLite serialises their writes; the busy timeout
@@ -25,7 +31,22 @@ public final class TrackaroStore: Sendable {
     public static func open(at url: URL, clock: @escaping @Sendable () -> Date = { Date() }) throws -> TrackaroStore {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let pool = try DatabasePool(path: url.path, configuration: configuration())
+        try backUpBeforeUpgrade(pool, folder: BackupFolder(database: url), now: clock())
         return try TrackaroStore(writer: pool, clock: clock)
+    }
+
+    /// Keeps a copy of a database that is about to be migrated, so a bad upgrade can always be undone. A failed copy
+    /// stops the upgrade: the data stays as it is rather than changing with no way back. A new database has nothing
+    /// to protect.
+    private static func backUpBeforeUpgrade(_ pool: DatabasePool, folder: BackupFolder, now: Date) throws {
+        let pending = try pool.read { db -> Bool in
+            let applied = try Schema.migrator.appliedIdentifiers(db)
+            let completed = try Schema.migrator.hasCompletedMigrations(db)
+            return !applied.isEmpty && !completed
+        }
+        guard pending else { return }
+        try copyDatabase(from: pool, to: folder.newURL(.beforeUpgrade, at: now))
+        try folder.prune(.beforeUpgrade)
     }
 
     public static func inMemory(clock: @escaping @Sendable () -> Date = { Date() }) throws -> TrackaroStore {
@@ -38,7 +59,7 @@ public final class TrackaroStore: Sendable {
         return support.appendingPathComponent("Trackaro", isDirectory: true).appendingPathComponent("trackaro.sqlite")
     }
 
-    private static func configuration() -> Configuration {
+    static func configuration() -> Configuration {
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
         configuration.busyMode = .timeout(5)

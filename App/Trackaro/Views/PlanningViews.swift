@@ -240,6 +240,12 @@ struct ProjectHeader: View {
                         .background(Capsule().fill(Color.primary.opacity(0.05)))
                     }
                     Button {
+                        model.sidebarSelection = .artifacts(project.id)
+                    } label: {
+                        Label(model.projectArtifactCount == 1 ? "1 artifact" : "\(model.projectArtifactCount) artifacts", systemImage: "doc.richtext").font(.callout)
+                    }
+                    .buttonStyle(.borderless)
+                    Button {
                         milestoneName = ""
                         addingMilestone = true
                     } label: {

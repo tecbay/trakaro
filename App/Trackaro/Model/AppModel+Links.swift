@@ -27,12 +27,21 @@ extension AppModel {
         case .projects:
             sidebarSelection = .projects
         case let .project(reference):
-            let wanted = reference.lowercased()
-            guard let project = snapshot?.projects.first(where: { $0.id == reference || $0.slug == wanted || $0.name.lowercased() == wanted }) else {
-                showToast("No project matches \(reference)", isError: true)
+            guard let project = project(matching: reference) else { return }
+            sidebarSelection = .project(project.id)
+        case .artifacts(nil):
+            sidebarSelection = .artifacts(nil)
+        case let .artifacts(reference?):
+            guard let project = project(matching: reference) else { return }
+            sidebarSelection = .artifacts(project.id)
+        case let .artifact(reference, name):
+            guard let project = project(matching: reference) else { return }
+            guard let artifact = try? store?.artifact(name, projectId: project.id) else {
+                showToast("No artifact named \(name) in \(project.name)", isError: true)
                 return
             }
-            sidebarSelection = .project(project.id)
+            sidebarSelection = .artifacts(project.id)
+            artifactSelection = artifact.summary.id
         case let .cycles(key):
             guard let team = team(withKey: key) else { return }
             sidebarSelection = .cycles(team.id)
@@ -55,6 +64,15 @@ extension AppModel {
         case let .command(command):
             if canPerform(command) { perform(command) }
         }
+    }
+
+    private func project(matching reference: String) -> Project? {
+        let wanted = reference.lowercased()
+        guard let project = snapshot?.projects.first(where: { $0.id == reference || $0.slug == wanted || $0.name.lowercased() == wanted }) else {
+            showToast("No project matches \(reference)", isError: true)
+            return nil
+        }
+        return project
     }
 
     private func team(withKey key: String) -> Team? {

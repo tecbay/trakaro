@@ -11,11 +11,11 @@ No account, no server, no cloud. Just one SQLite file on your Mac.
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
-![26 MCP tools](https://img.shields.io/badge/MCP-26%20tools-6E56CF)
+![30 MCP tools](https://img.shields.io/badge/MCP-30%20tools-6E56CF)
 ![Local only](https://img.shields.io/badge/data-local%20only-2EA44F)
 ![MIT license](https://img.shields.io/badge/license-MIT-blue)
 
-[Why local](#why-local) · [Install](#install) · [Connect Claude](#connect-claude) · [MCP tools](#mcp-tools) · [Features](#features)
+[Why local](#why-local) · [Install](#install) · [Connect Claude](#connect-claude) · [MCP tools](#mcp-tools) · [Features](#features) · [Backups](#backups-and-upgrades)
 
 <br>
 
@@ -64,7 +64,7 @@ server:
 
 ## Install
 
-You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.1.1.dmg)
+You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.2.0.dmg)
 and drag Trackaro to Applications.
 
 The download isn't notarized yet, so macOS blocks it on first open. Allow it under **System Settings → Privacy &
@@ -91,7 +91,7 @@ scripts/make-dmg.sh
 ```
 
 ```bash
-open dist/Trackaro-0.1.1.dmg
+open dist/Trackaro-0.2.0.dmg
 ```
 
 Drag Trackaro to Applications. The app is a universal binary for Apple Silicon and Intel, and the MCP server is
@@ -153,7 +153,7 @@ To set up Cursor by hand, add this to `~/.cursor/mcp.json`:
 
 ## MCP tools
 
-26 tools, designed so an agent can use them without guessing and without wasting tokens.
+30 tools, designed so an agent can use them without guessing and without wasting tokens.
 
 | Area | Tools |
 | --- | --- |
@@ -162,6 +162,7 @@ To set up Cursor by hand, add this to `~/.cursor/mcp.json`:
 | **Conversation** | `add_comment` `list_comments` `get_issue_history` `set_relation` `remove_relation` `mark_duplicate` |
 | **Planning** | `list_projects` `create_project` `update_project` `create_milestone` `list_cycles` `create_cycle` `cycle_progress` |
 | **Views** | `save_view` `delete_view` |
+| **Artifacts** | `save_artifact` `list_artifacts` `get_artifact` `delete_artifact` |
 | **Setup** | `create_label` `create_team` |
 
 **Resources:** `trackaro://workspace`, `trackaro://cycles/active`, `trackaro://issue/{identifier}`<br>
@@ -191,10 +192,19 @@ What makes them pleasant for an agent:
     <td><img src="docs/images/cycle.png" alt="Current cycle page with scope, points and a burn-up chart"><p align="center"><b>Cycles:</b> scope, points and burn-up</p></td>
     <td><img src="docs/images/palette.png" alt="Command palette open over the issue list"><p align="center"><b>Command palette:</b> <code>⌘K</code> for everything</p></td>
   </tr>
+  <tr>
+    <td><img src="docs/images/description.png" alt="Issue description with headings, a task list, a table, a quote and a code block"><p align="center"><b>Rich descriptions:</b> the context Claude writes, formatted</p></td>
+    <td><img src="docs/images/artifacts.png" alt="Artifacts page listing a project's files with a formatted spec open"><p align="center"><b>Artifacts:</b> specs and reports, kept with the project</p></td>
+  </tr>
 </table>
 
 <p align="center"><sub>Screenshots use made-up demo data.</sub></p>
 
+- **Rich descriptions:** Claude writes GitHub-flavored Markdown with headings, task lists, tables and code blocks. You read
+  it formatted, and edit it with a toolbar and a live preview.
+- **Project artifacts:** Claude saves specs, reports, HTML pages, images and PDFs to a project, and you browse them in
+  the app. HTML shows with its scripts off and nothing loaded from the network.
+- **Backup and restore:** one file with everything in it, plus automatic daily copies.
 - **One-click agent setup:** connect Claude Code, Claude Desktop, Cursor or VS Code from inside the app.
 - **Issues:** sub-issues, labels, relations, comments, estimates, due dates and a full activity history.
 - **Board and list:** `⌘B` switches views. Drag cards between columns and watch them animate when an agent moves them.
@@ -214,9 +224,26 @@ Everything lives in one file:
 ~/Library/Application Support/Trackaro/trackaro.sqlite
 ```
 
-Trackaro has no accounts, no telemetry and no networking code. Back the file up however you like. Two things do leave
-your Mac, and they come from your own tools rather than from Trackaro: your agent sends what it reads to its model
+Trackaro has no accounts, no telemetry and no networking code. Two things do leave your Mac, and they come from your own tools rather than from Trackaro: your agent sends what it reads to its model
 provider, and column automations run the shell command you configure.
+
+## Backups and upgrades
+
+Open **File → Backup and Restore…** to save a backup or restore one. A backup is one file holding all your issues,
+projects, automations and artifacts. Column automations' log files are not included.
+
+Trackaro also keeps copies in the `Backups` folder beside the database: one a day for the last 7 days, and one before
+every upgrade or restore. A restore never touches your data until the backup has passed its checks, and agents that are
+connected carry on with the restored data.
+
+To upgrade:
+
+1. Quit Trackaro and drag the new version to Applications. Your data stays where it is.
+2. Open Trackaro. It copies your database to `Backups`, then upgrades it.
+3. Restart your agent sessions to get the new tools. Sessions still running the old server keep working until then.
+
+If you need to go back, reinstall the older version. It can still open an upgraded database and simply ignores what it
+doesn't know about.
 
 ## Develop
 
@@ -233,10 +260,6 @@ The core, MCP server and UI logic are plain Swift packages with tests, and the S
 [`trackaro-architecture`](.claude/skills/trackaro-architecture/SKILL.md) skill maps the code. Use `TRACKARO_DATABASE`
 when testing by hand so your real tasks stay untouched.
 
-> [!WARNING]
-> Trackaro is at an early stage (0.1.1), and schema upgrades between versions aren't guaranteed yet. Keep a backup of
-> your database.
-
 ## Roadmap
 
 - [x] Local store and MCP server
@@ -244,6 +267,7 @@ when testing by hand so your real tasks stay untouched.
 - [x] Board, filters, saved views, projects and cycles
 - [x] Column automations and agent pings
 - [x] `.dmg` build and downloadable release
+- [x] Rich descriptions, project artifacts, backup and restore
 - [ ] Notes, local inbox and reminders
 - [ ] Developer ID signing and notarization
 

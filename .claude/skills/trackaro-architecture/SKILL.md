@@ -59,6 +59,9 @@ Trackaro.app ──writes──┐                     ┌──writes── tra
 | Agent pings | `TrackaroStore+Feed.swift` | | `AgentFeed.swift`, `ChannelTransport.swift`, `main.swift` | |
 | Column automations | `Model/Automation.swift`, `TrackaroStore+Automations.swift` | `Automation/AutomationMatcher.swift`, `AutomationRunner.swift` | none, on purpose | `AutomationsView`, `AppModel+Automations` |
 | Connect an agent | | `Agents/AgentConnector.swift` | | `ConnectAgentView` |
+| Rich descriptions and comments | `issue.description` | `Presentation/Markdown.swift` | description arguments in `IssueTools` | `MarkdownView.swift` (`MarkdownView`, `MarkdownEditor`, `DescriptionSection`) |
+| Project artifacts | `Model/Artifact.swift`, `TrackaroStore+Artifacts.swift` | `AppLink` | `Tools/ArtifactTools.swift` | `ArtifactsView`, `AppModel+Artifacts` |
+| Backup and restore | `TrackaroStore+Backup.swift`, `BackupFolder` | `AutomationRunner.suspend` and `resume` | none, on purpose | `BackupsView`, `AppModel+Backups` |
 | Keyboard, palette, pickers | | `Keyboard/*`, `Search/FuzzyMatch.swift` | | `KeyboardController`, `AppModel+Commands`, `OverlayViews` |
 | Undo and redo | compare-and-set via `expecting:` | `Editing/EditHistory.swift` | | `AppModel+Editing` |
 | Deep links | | `Navigation/AppLink.swift` | | `AppModel+Links` |
@@ -69,7 +72,7 @@ Read the one that matches the task; each is self-contained.
 
 - [references/data-model.md](references/data-model.md): tables, records, enums, queries and `IssueFilter`,
   progress, feed and change log, migrations.
-- [references/mcp-server.md](references/mcp-server.md): the 26 tools by area, ToolKit, Resolver and Presenter,
+- [references/mcp-server.md](references/mcp-server.md): the 30 tools by area, ToolKit, Resolver and Presenter,
   resources and prompts, channel push and hook CLI, the test harness.
 - [references/app.md](references/app.md): AppModel and its extensions, sidebar pages and the reload pipeline,
   keyboard and overlays, board, filter bar, planning pages, automations runner, persisted preferences.
@@ -108,7 +111,7 @@ through MCP, driving the app with deep links, capturing only Trackaro's window, 
 
 ## Status
 
-Done: core store, MCP server (26 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
+Done: core store, MCP server (30 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
 layer, board, filters and saved views, projects and cycles pages, agent pings (channel push, hooks, watch), column
-automations, `.dmg` build and GitHub release. Not yet: Cursor setup and installed hooks, notes, an agent inbox,
+automations, rich Markdown descriptions, project artifacts, backup and restore, `.dmg` build and GitHub release. Not yet: Cursor setup and installed hooks, notes, an agent inbox,
 Developer ID signing and notarization. `README.md` keeps the user-facing status list; update it with each feature.

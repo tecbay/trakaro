@@ -43,6 +43,16 @@ public actor AutomationRunner {
         cursor = try store.feedHead()
     }
 
+    /// Stops reacting to the feed, for the length of a restore. Running processes carry on.
+    public func suspend() {
+        cursor = nil
+    }
+
+    /// Reacts to the feed again, from now.
+    public func resume() throws {
+        cursor = try store.feedHead()
+    }
+
     /// Reads new feed events and launches what they trigger. Cheap when nothing changed: two indexed lookups.
     @discardableResult
     public func tick() throws -> [AutomationRun] {

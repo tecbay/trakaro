@@ -19,7 +19,7 @@ struct ServerSurfaceTests {
             #expect(tool.annotations.readOnlyHint != nil)
         }
         let readOnly = Set(tools.filter { $0.annotations.readOnlyHint == true }.map(\.name))
-        #expect(readOnly == ["get_workspace", "search_issues", "get_issues", "list_comments", "get_issue_history", "list_projects", "list_cycles", "cycle_progress"])
+        #expect(readOnly == ["get_workspace", "search_issues", "get_issues", "list_comments", "get_issue_history", "list_projects", "list_cycles", "cycle_progress", "list_artifacts", "get_artifact"])
         #expect(tools.first { $0.name == "remove_relation" }?.annotations.destructiveHint == true)
     }
 
@@ -337,5 +337,74 @@ struct PlanningResourcePromptTests {
         guard case let .text(planText) = plan.messages.first?.content else { throw Harness.ToolFailure(description: "no text") }
         #expect(planText.contains("Goal: Dark mode"))
         await #expect(throws: (any Error).self) { _ = try await harness.client.getPrompt(name: "plan_work") }
+    }
+}
+
+@Suite("MCP artifacts")
+struct ArtifactToolTests {
+    @Test func saveListReadUpdateAndDeleteByName() async throws {
+        let harness = try await Harness.start()
+        defer { Task { await harness.stop() } }
+        try await harness.call("create_project", ["name": "Launch"])
+
+        let saved = try await harness.call("save_artifact", [
+            "project": "launch", "name": "auth-spec.md", "content": "# Auth\n\n- [ ] Tokens", "summary": "How login works",
+        ])
+        #expect(saved["created"]?.boolValue == true)
+        #expect(saved["project"]?.stringValue == "Launch")
+        #expect(saved["type"]?.stringValue == "text/markdown")
+        #expect(saved["created_by"]?.stringValue == "Claude Code")
+        #expect(saved["link"]?.stringValue == "trackaro://artifact/launch/auth-spec.md")
+
+        let updated = try await harness.call("save_artifact", ["project": "Launch", "name": "AUTH-SPEC.md", "content": "# Auth v2"])
+        #expect(updated["created"]?.boolValue == false)
+        #expect(updated["version"]?.intValue == 2)
+        #expect(updated["summary"]?.stringValue == "How login works")
+
+        let listed = try await harness.call("list_artifacts", ["project": "Launch"])
+        #expect(listed["count"]?.intValue == 1)
+        #expect(listed["artifacts"]?[0]?["content"] == nil)
+        #expect(try await harness.call("list_artifacts", ["query": "login"])["count"]?.intValue == 1)
+        #expect(try await harness.call("list_artifacts", ["query": "nothing"])["count"]?.intValue == 0)
+
+        let read = try await harness.call("get_artifact", ["name": "auth-spec.md"])
+        #expect(read["content"]?.stringValue == "# Auth v2")
+
+        #expect(try await harness.call("delete_artifact", ["name": "auth-spec.md", "project": "Launch"])["deleted"]?.stringValue == "AUTH-SPEC.md")
+        #expect(try await harness.call("list_artifacts")["count"]?.intValue == 0)
+    }
+
+    @Test func aFileOnDiskIsCopiedInAndBinaryStaysOutOfTheContextUnlessAsked() async throws {
+        let harness = try await Harness.start()
+        defer { Task { await harness.stop() } }
+        try await harness.call("create_project", ["name": "Launch"])
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("trackaro-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try Data([0x89, 0x50, 0x4E, 0x47, 0x00]).write(to: file)
+
+        let saved = try await harness.call("save_artifact", ["project": "Launch", "name": "shot.png", "file_path": .string(file.path)])
+        #expect(saved["type"]?.stringValue == "image/png")
+        #expect(saved["bytes"]?.intValue == 5)
+
+        let plain = try await harness.call("get_artifact", ["name": "shot.png"])
+        #expect(plain["content"] == nil)
+        #expect(plain["content_base64"] == nil)
+        let encoded = try await harness.call("get_artifact", ["name": "shot.png", "as_base64": true])
+        #expect(encoded["content_base64"]?.stringValue == "iVBORwA=")
+    }
+
+    @Test func mistakesTeachAndWriteNothing() async throws {
+        let harness = try await Harness.start()
+        defer { Task { await harness.stop() } }
+        try await harness.call("create_project", ["name": "Launch"])
+
+        let project = try await harness.failure("save_artifact", ["project": "Nope", "name": "a.md", "content": "x"])
+        #expect(project.contains("Launch"))
+        #expect(try await harness.failure("save_artifact", ["project": "Launch", "name": "a.md"]).contains("content or file_path"))
+        #expect(try await harness.failure("save_artifact", ["project": "Launch", "name": "a.md", "content": "x", "file_path": "/tmp/x"]).contains("not both"))
+        #expect(try await harness.failure("save_artifact", ["project": "Launch", "name": "a.md", "file_path": "/no/such/file"]).contains("No file at"))
+        try await harness.call("save_artifact", ["project": "Launch", "name": "real.md", "content": "x"])
+        #expect(try await harness.failure("get_artifact", ["name": "missing.md"]).contains("real.md"))
+        #expect(try await harness.call("list_artifacts")["count"]?.intValue == 1)
     }
 }
