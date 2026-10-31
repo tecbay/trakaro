@@ -65,11 +65,11 @@ You need macOS 14 or later, Xcode 16 or later and [XcodeGen](https://github.com/
 (`brew install xcodegen`). Build the disk image from source:
 
 ```bash
-git clone https://github.com/tecbay/tracker.git
+git clone https://github.com/tecbay/trakaro.git
 ```
 
 ```bash
-cd tracker
+cd trakaro
 ```
 
 ```bash
