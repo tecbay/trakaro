@@ -102,7 +102,7 @@ enum SidebarItem: Hashable {
     var emptyMessage: String {
         switch self {
         case .myIssues: "Nothing assigned to you. Press C to create an issue."
-        case .agentActivity: "No agent has changed anything yet. Connect Claude Code or Cursor with trackaro-mcp."
+        case .agentActivity: "No agent has changed anything yet. Use Connect an agent in the sidebar to get started."
         case .team(_, .backlog): "The backlog is empty."
         case .team(_, .active): "Nothing in progress."
         case .team: "No issues yet. Press C to create one."

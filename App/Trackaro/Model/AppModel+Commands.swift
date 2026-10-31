@@ -65,7 +65,7 @@ extension AppModel {
         case .deleteView:
             savedView != nil
         case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
-             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations,
+             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations, .connectAgent,
              .goProjects, .goCycles, .newProject, .newCycle:
             true
         }
@@ -93,6 +93,7 @@ extension AppModel {
         case .completeCycle: if let cycle = openCycle { requestCompleteCycle(cycle) }
         case .automations: openAutomations()
         case .runAutomation: runAutomationNow()
+        case .connectAgent: connectAgentPresented = true
         case .filter: overlay == .filter ? (overlay = nil) : openFilterPicker()
         case .searchInView: focusFilterText()
         case .clearFilters: clearFilters()

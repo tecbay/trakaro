@@ -10,7 +10,7 @@ Package.swift            TrackaroCore, TrackaroKit, TrackaroMCP, the trackaro-mc
 Sources/TrackaroCore     Domain model, schema, store, ordering, queries
 Sources/TrackaroMCP      MCP tools, resources, prompts (official swift-sdk, pinned exactly)
 Sources/TrackaroKit      UI logic with no UI: key bindings and chords, the command catalog, fuzzy matching,
-                         undo history, list rows, activity text, deep links
+                         undo history, list rows, activity text, deep links, connecting agent tools
 Sources/trackaro-mcp     stdio entry point
 Tests/TrackaroCoreTests  Swift Testing suites, mirroring Sources
 Tests/TrackaroKitTests   Tests for TrackaroKit

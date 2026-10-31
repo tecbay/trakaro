@@ -96,6 +96,7 @@ final class AppModel {
     /// Bumped to move focus into the filter bar's text field.
     var filterFocusRequest = 0
     var automationsPresented = false
+    var connectAgentPresented = false
     var newProjectPresented = false
     /// The cycle waiting for the user to choose what happens to its unfinished issues.
     var cycleToComplete: Cycle?

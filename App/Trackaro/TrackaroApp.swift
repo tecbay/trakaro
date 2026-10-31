@@ -31,6 +31,7 @@ struct TrackaroApp: App {
                 Button("Command Palette") { model.perform(.palette) }
                 Button("Toggle Details Panel") { model.perform(.toggleInspector) }
                 Button("Column Automations…") { model.perform(.automations) }
+                Button("Connect an Agent…") { model.perform(.connectAgent) }
                 Divider()
                 Picker("Appearance", selection: $appearance) {
                     ForEach(AppearancePreference.allCases, id: \.rawValue) { option in

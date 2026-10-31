@@ -58,6 +58,7 @@ Trackaro.app ──writes──┐                     ┌──writes── tra
 | Projects, milestones, cycles | `TrackaroStore+Planning.swift`, `TrackaroStore+Progress.swift` | `Presentation/Planning.swift` | `Tools/PlanningTools.swift` | `PlanningViews`, `AppModel+Planning` |
 | Agent pings | `TrackaroStore+Feed.swift` | | `AgentFeed.swift`, `ChannelTransport.swift`, `main.swift` | |
 | Column automations | `Model/Automation.swift`, `TrackaroStore+Automations.swift` | `Automation/AutomationMatcher.swift`, `AutomationRunner.swift` | none, on purpose | `AutomationsView`, `AppModel+Automations` |
+| Connect an agent | | `Agents/AgentConnector.swift` | | `ConnectAgentView` |
 | Keyboard, palette, pickers | | `Keyboard/*`, `Search/FuzzyMatch.swift` | | `KeyboardController`, `AppModel+Commands`, `OverlayViews` |
 | Undo and redo | compare-and-set via `expecting:` | `Editing/EditHistory.swift` | | `AppModel+Editing` |
 | Deep links | | `Navigation/AppLink.swift` | | `AppModel+Links` |

@@ -36,6 +36,9 @@ struct RootView: View {
         .sheet(isPresented: $model.automationsPresented) {
             AutomationsView()
         }
+        .sheet(isPresented: $model.connectAgentPresented) {
+            ConnectAgentView()
+        }
         .sheet(isPresented: $model.newProjectPresented) {
             NewProjectView()
         }
@@ -106,6 +109,17 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                model.perform(.connectAgent)
+            } label: {
+                Label("Connect an agent", systemImage: "sparkles")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
         .toolbar {
             ToolbarItem {
                 Button {

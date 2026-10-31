@@ -74,7 +74,8 @@ Rows note which agent changed an issue in the last 15 minutes (`recentAgentWindo
   links, automation runs (Stop, Log), activity and comments feed, composer.
 - `FilterBar.swift`, `PlanningViews.swift` (progress bar, project and cycle overviews and headers, burn-up chart
   with Swift Charts, new project sheet), `AutomationsView.swift`, `QuickCreateView.swift` (defaults its team,
-  state, assignee, project and cycle from the current page).
+  state, assignee, project and cycle from the current page), `ConnectAgentView.swift` (one-click MCP setup over
+  `AgentConnector` in Kit, opened by the sidebar button or the `connectAgent` command).
 - `Design/Theme.swift`: colour tokens (`Theme.accent`, `agent`, `danger`, `high`, state and priority colours),
   `Symbols`, `RelativeTime`. No literal colours in views.
 

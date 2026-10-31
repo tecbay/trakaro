@@ -104,7 +104,17 @@ bundled inside it.
 
 ## Connect Claude
 
-Register the bundled server with Claude Code once:
+Click **Connect an agent** at the bottom of the sidebar, then **Connect** next to your tool. It also works from the
+`⌘K` palette.
+
+| Tool | What the button does |
+| --- | --- |
+| **Claude Code** | Runs `claude mcp add` for you. Restart any running sessions. |
+| **Claude Desktop** | Adds Trackaro to its settings file and keeps a backup. Quit and reopen Claude Desktop. |
+| **Cursor** | Opens Cursor to confirm the install. |
+| **VS Code** | Opens VS Code to confirm the install. |
+
+Prefer the terminal? This does the same for Claude Code:
 
 ```bash
 claude mcp add --scope user trackaro -- /Applications/Trackaro.app/Contents/Helpers/trackaro-mcp
@@ -118,7 +128,7 @@ Then just talk to it:
 
 > Give me a standup of what moved since yesterday.
 
-For Cursor, add this to `~/.cursor/mcp.json`:
+To set up Cursor by hand, add this to `~/.cursor/mcp.json`:
 
 ```json
 {
