@@ -33,6 +33,9 @@ struct RootView: View {
         .sheet(isPresented: $model.quickCreatePresented) {
             QuickCreateView()
         }
+        .sheet(isPresented: $model.automationsPresented) {
+            AutomationsView()
+        }
         .onOpenURL { url in model.open(url) }
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }

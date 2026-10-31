@@ -117,8 +117,8 @@ run this when an issue enters a chosen column. It runs a separate CLI session, n
 
 ## Next steps worth building
 
-1. **Column automations:** "when an issue enters Ready for agent, run `claude -p` (or Cursor's `agent -p`) in
-   this repository with this prompt." Fully documented on both sides and works with no session open.
+1. **Column automations (built):** when the user moves an issue into an automated column, the app runs
+   `claude -p "$TRACKARO_PROMPT"` in the chosen folder. The command is editable, so Cursor's CLI works too.
 2. **A "Watch" toggle per agent session in the app,** so you can see which sessions are listening.
 3. **Confirm idle wake** for channels and Monitor in a real Claude Code session, then make channels the default.
 

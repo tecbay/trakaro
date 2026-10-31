@@ -38,6 +38,7 @@ final class AppModel {
     /// The filter set on each sidebar item, remembered across launches. For a saved view it is the unsaved edit.
     var filters: [String: IssueFilter] = AppModel.loadFilters()
     private(set) var detail: IssueDetail?
+    private(set) var automations: [Automation] = []
     private(set) var loadError: String?
 
     // MARK: Navigation and selection
@@ -88,6 +89,9 @@ final class AppModel {
     var filterDraft = ""
     /// Bumped to move focus into the filter bar's text field.
     var filterFocusRequest = 0
+    var automationsPresented = false
+    /// The column the automations editor starts a new rule for, when opened from a board column.
+    var automationPreset: String?
     var quickCreatePresented = false
     /// The state a new issue starts in when created from a board column's + button.
     var quickCreateStateId: String?
@@ -106,6 +110,7 @@ final class AppModel {
     private var seenChangeSeq: Int64 = 0
     private var watcher: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
+    var automationRunner: AutomationRunner?
     private var rowIds: [String] = []
 
     static let log = Logger(subsystem: "app.trackaro.Trackaro", category: "sync")
@@ -135,6 +140,7 @@ final class AppModel {
             self.store = store
             self.user = user
             reloadAll()
+            startAutomations(store: store)
             watchForExternalChanges()
         } catch {
             loadError = String(describing: error)
@@ -147,6 +153,7 @@ final class AppModel {
         do {
             seenChangeSeq = try store.latestChangeSeq()
             snapshot = try store.snapshot()
+            automations = try store.automations()
         } catch {
             showError(error)
         }
@@ -251,6 +258,7 @@ final class AppModel {
         watcher = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.pollInterval)
+                await self?.runAutomations()
                 self?.reloadIfChangedElsewhere()
             }
         }

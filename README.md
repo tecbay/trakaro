@@ -22,6 +22,10 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   `/` filters by text, `⇧F` clears. `⌘S` saves the page plus its filters as a view in the sidebar, and edits to a
   view stay unsaved until you save or discard them. Agents see views in `get_workspace`, read them with
   `search_issues` `view`, and create them with `save_view` (for example a "Ready for agent" board).
+- **Column automations (done).** Right-click a board column, Automate this column, and pick a repository folder.
+  When you move an issue into that column (or create one there), Trackaro runs `claude -p` in the folder with a
+  prompt about the issue; Claude works through the Trackaro tools, comments and moves the card. Runs and their
+  logs show in the issue's details panel. Agents' own moves never trigger a rule, so automations cannot loop.
 - **Agent pings (prototype).** When you change an issue, agents can hear about it: Claude Code channel push,
   Claude Code and Cursor hooks, or a live `trackaro-mcp watch` feed. See [docs/agent-pings.md](docs/agent-pings.md).
 

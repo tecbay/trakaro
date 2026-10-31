@@ -24,6 +24,15 @@ struct IssueDetail: Equatable {
         let kind: Kind
     }
 
+    struct RunEntry: Equatable, Identifiable {
+        let id: String
+        let name: String
+        let status: AutomationRunStatus
+        let startedAt: Date
+        let finishedAt: Date?
+        let logPath: String
+    }
+
     let issue: Issue
     let state: WorkflowState?
     let labels: [IssueLabel]
@@ -32,6 +41,7 @@ struct IssueDetail: Equatable {
     let relations: [Link]
     let isBlocked: Bool
     let feed: [FeedEntry]
+    let runs: [RunEntry]
 
     static func load(_ issueId: String, store: TrackaroStore, snapshot: WorkspaceSnapshot) throws -> IssueDetail {
         let issue = try store.issue(issueId)
@@ -76,8 +86,19 @@ struct IssueDetail: Equatable {
                      caption: $0.type.rawValue.replacingOccurrences(of: "_", with: " "))
             },
             isBlocked: try store.isBlocked(issue.id),
-            feed: (events + notes).sorted { $0.at < $1.at }
+            feed: (events + notes).sorted { $0.at < $1.at },
+            runs: try runEntries(issue.id, store: store)
         )
+    }
+
+    private static func runEntries(_ issueId: String, store: TrackaroStore) throws -> [RunEntry] {
+        let runs = try store.runs(issueId: issueId, limit: 5)
+        guard !runs.isEmpty else { return [] }
+        let names = Dictionary(uniqueKeysWithValues: try store.automations().map { ($0.id, $0.name) })
+        return runs.map {
+            RunEntry(id: $0.id, name: names[$0.automationId] ?? "Automation", status: $0.status,
+                     startedAt: $0.startedAt, finishedAt: $0.finishedAt, logPath: $0.logPath)
+        }
     }
 
     private static func decodeString(_ json: String) -> String? {

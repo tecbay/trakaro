@@ -117,6 +117,16 @@ private struct BoardColumnView: View {
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.tertiary)
             Spacer()
+            let rules = model.automations(forState: column.stateId)
+            if !rules.isEmpty {
+                Button {
+                    model.openAutomations(forState: column.stateId)
+                } label: {
+                    Image(systemName: "bolt.fill").foregroundStyle(Color.agent)
+                }
+                .buttonStyle(.borderless)
+                .help("Moving an issue here runs: \(rules.map(\.name).joined(separator: ", "))")
+            }
             Button {
                 model.quickCreateStateId = column.stateId
                 model.perform(.newIssue)
@@ -128,6 +138,12 @@ private struct BoardColumnView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .contextMenu {
+            if let stateId = column.stateId {
+                Button("Automate this column…") { model.openAutomations(forState: stateId) }
+            }
+        }
     }
 
     /// Click selects one card; Command-click adds or removes it from the selection.

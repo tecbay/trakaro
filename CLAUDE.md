@@ -76,6 +76,10 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
   `search_issues` and `save_view` build from arguments. It only narrows: `applied(to:)` intersects with the page's
   own query, and `narrowed(by:)` folds a page into a filter when saving a view. Options and chips come from
   `FilterCatalog` in TrackaroKit.
+- **Automations run shell commands, so they stay the user's.** Only the app creates them; there is no MCP tool.
+  `AutomationMatcher` fires on the user's moves only, never an agent's. Issue text reaches the command through
+  `TRACKARO_*` environment variables and is never spliced into the command string; keep it that way, and keep
+  `runnerRunsTheCommandWithIssueTextOnlyInTheEnvironment` passing.
 - **Colors come from `Theme` or the system.** No literal colors in views.
 
 ## MCP tool design

@@ -4,7 +4,40 @@ enum Schema {
     static var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1", migrate: createInitialSchema)
+        migrator.registerMigration("v2-automations", migrate: createAutomations)
         return migrator
+    }
+
+    private static func createAutomations(_ db: Database) throws {
+        let statuses = AutomationRunStatus.allCases.map { "'\($0.rawValue)'" }.joined(separator: ",")
+        try db.execute(sql: """
+            CREATE TABLE automation (
+                id TEXT PRIMARY KEY NOT NULL,
+                name TEXT NOT NULL,
+                teamId TEXT NOT NULL REFERENCES team(id) ON DELETE CASCADE,
+                stateId TEXT NOT NULL REFERENCES workflowState(id) ON DELETE CASCADE,
+                directory TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                command TEXT NOT NULL,
+                enabled BOOLEAN NOT NULL DEFAULT 1,
+                createdAt DATETIME NOT NULL,
+                updatedAt DATETIME NOT NULL
+            );
+            CREATE INDEX automation_state ON automation(stateId);
+
+            CREATE TABLE automationRun (
+                id TEXT PRIMARY KEY NOT NULL,
+                automationId TEXT NOT NULL REFERENCES automation(id) ON DELETE CASCADE,
+                issueId TEXT NOT NULL REFERENCES issue(id) ON DELETE CASCADE,
+                status TEXT NOT NULL CHECK (status IN (\(statuses))),
+                logPath TEXT NOT NULL,
+                exitCode INTEGER,
+                startedAt DATETIME NOT NULL,
+                finishedAt DATETIME
+            );
+            CREATE INDEX automationRun_issue ON automationRun(issueId, startedAt);
+            CREATE INDEX automationRun_status ON automationRun(status);
+            """)
     }
 
     private static func createInitialSchema(_ db: Database) throws {

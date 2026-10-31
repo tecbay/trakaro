@@ -41,6 +41,7 @@ private struct IssueInspector: View {
                 properties
                 descriptionEditor
                 links
+                if !detail.runs.isEmpty { runs }
                 Divider()
                 feed
                 composer
@@ -78,6 +79,50 @@ private struct IssueInspector: View {
             }
             .buttonStyle(.borderless)
             .help("Copy identifier")
+        }
+    }
+
+    private var runs: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Automation runs").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            ForEach(detail.runs) { run in
+                HStack(spacing: 8) {
+                    if run.status == .running {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: Self.symbol(run.status)).foregroundStyle(Self.tint(run.status))
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(run.name).font(.callout)
+                        Text("\(run.status.rawValue.capitalized) · \(RelativeTime.string(run.finishedAt ?? run.startedAt))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if run.status == .running {
+                        Button("Stop") { model.stopRun(run.id) }.controlSize(.small)
+                    }
+                    Button("Log") { model.openLog(run.logPath) }.controlSize(.small)
+                }
+            }
+        }
+    }
+
+    private static func symbol(_ status: AutomationRunStatus) -> String {
+        switch status {
+        case .running: "bolt.fill"
+        case .succeeded: "checkmark.circle.fill"
+        case .failed: "xmark.octagon.fill"
+        case .stopped: "stop.circle"
+        case .interrupted: "exclamationmark.circle"
+        }
+    }
+
+    private static func tint(_ status: AutomationRunStatus) -> Color {
+        switch status {
+        case .running: .agent
+        case .succeeded: .green
+        case .failed: Color(nsColor: Theme.danger)
+        case .stopped, .interrupted: .secondary
         }
     }
 

@@ -56,12 +56,14 @@ extension AppModel {
             !selection.isEmpty || cursor != nil || overlay != nil
         case .clearFilters:
             !filter.isEmpty || textFilterVisible
+        case .runAutomation:
+            !targets.isEmpty && !automations.isEmpty
         case .revertView:
             isViewModified
         case .deleteView:
             savedView != nil
         case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
-             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView:
+             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations:
             true
         }
     }
@@ -81,6 +83,8 @@ extension AppModel {
         case .goIssues: goToTeam(.all)
         case .goActive: goToTeam(.active)
         case .goBacklog: goToTeam(.backlog)
+        case .automations: openAutomations()
+        case .runAutomation: runAutomationNow()
         case .filter: overlay == .filter ? (overlay = nil) : openFilterPicker()
         case .searchInView: focusFilterText()
         case .clearFilters: clearFilters()
