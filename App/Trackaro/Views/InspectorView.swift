@@ -20,6 +20,31 @@ struct InspectorView: View {
     }
 }
 
+/// The same details as the side panel, in a window of their own over the list.
+struct IssueModalView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let detail = model.detail {
+                IssueInspector(detail: detail)
+                    .id(detail.issue.id)
+            } else {
+                ContentUnavailableView("Issue not found", systemImage: "questionmark.circle")
+            }
+            Divider()
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(12)
+        }
+        .frame(minWidth: 560, idealWidth: 640, minHeight: 520, idealHeight: 680)
+    }
+}
+
 private struct IssueInspector: View {
     @Environment(AppModel.self) private var model
     let detail: IssueDetail

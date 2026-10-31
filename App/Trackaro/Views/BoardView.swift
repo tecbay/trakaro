@@ -62,6 +62,7 @@ private struct BoardColumnView: View {
                         BoardCard(card: card, selected: model.selection.contains(card.id), focused: model.cursor == card.id)
                             .matchedGeometryEffect(id: card.id, in: cardSpace)
                             .id(card.id)
+                            .onTapGesture(count: 2) { model.openInModal(card.id) }
                             .onTapGesture { tap(card) }
                             .draggable(card.id) {
                                 BoardCard(card: card, selected: false, focused: false).frame(width: 260)

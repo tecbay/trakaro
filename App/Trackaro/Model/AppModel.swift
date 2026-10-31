@@ -113,6 +113,8 @@ final class AppModel {
     var restoreCandidate: URL?
     var isRestoring = false
     var newProjectPresented = false
+    /// The issue details window opened by double-clicking a row or card.
+    var issueModalPresented = false
     /// The cycle waiting for the user to choose what happens to its unfinished issues.
     var cycleToComplete: Cycle?
     /// The column the automations editor starts a new rule for, when opened from a board column.
@@ -405,6 +407,12 @@ final class AppModel {
         }
         select([issueId], cursor: issueId)
         inspectorPresented = true
+    }
+
+    /// Shows the issue's details in a modal over the window, as double-clicking does.
+    func openInModal(_ issueId: String) {
+        focus(issueId)
+        issueModalPresented = detail != nil
     }
 
     func moveCursor(by offset: Int, extend: Bool = false) {

@@ -46,6 +46,9 @@ struct RootView: View {
         .sheet(isPresented: $model.backupsPresented) {
             BackupsView()
         }
+        .sheet(isPresented: $model.issueModalPresented) {
+            IssueModalView()
+        }
         .sheet(isPresented: $model.newProjectPresented) {
             NewProjectView()
         }
@@ -178,7 +181,7 @@ struct IssueListPane: View {
                     selection: model.selection,
                     cursor: model.cursor,
                     onSelect: { ids, cursor in model.select(ids, cursor: cursor) },
-                    onOpen: { id in model.focus(id) },
+                    onOpen: { id in model.openInModal(id) },
                     onCommand: { command in model.perform(command) }
                 )
             }
