@@ -4,7 +4,7 @@ import TrackaroCore
 
 /// The Trackaro MCP server: tools, resources and prompts over any MCP transport.
 public enum TrackaroMCPServer {
-    public static let version = "0.1.0"
+    public static let version = "0.1.1"
 
     public struct Options: Sendable {
         /// Hide every tool that writes. The server can still read everything.

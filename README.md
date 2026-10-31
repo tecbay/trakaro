@@ -21,7 +21,7 @@ No account, no server, no cloud. Just one SQLite file on your Mac.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img src="docs/images/hero-light.png" alt="Trackaro board showing the issues Claude and the founder are working on" width="900">
+  <img src="docs/images/hero-light.png" alt="Trackaro board with a task open in the details panel, showing its sub-issues, Claude's activity and comments" width="900">
 </picture>
 
 </div>
@@ -64,7 +64,7 @@ server:
 
 ## Install
 
-You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.1.0.dmg)
+You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.1.1.dmg)
 and drag Trackaro to Applications.
 
 The download isn't notarized yet, so macOS blocks it on first open. Allow it under **System Settings → Privacy &
@@ -91,7 +91,7 @@ scripts/make-dmg.sh
 ```
 
 ```bash
-open dist/Trackaro-0.1.0.dmg
+open dist/Trackaro-0.1.1.dmg
 ```
 
 Drag Trackaro to Applications. The app is a universal binary for Apple Silicon and Intel, and the MCP server is
@@ -106,6 +106,10 @@ bundled inside it.
 
 Click **Connect an agent** at the bottom of the sidebar, then **Connect** next to your tool. It also works from the
 `⌘K` palette.
+
+<p align="center">
+  <img src="docs/images/connect.png" alt="Connect an agent sheet listing Claude Code, Claude Desktop, Cursor and VS Code with their connection status" width="520">
+</p>
 
 | Tool | What the button does |
 | --- | --- |
@@ -191,6 +195,7 @@ What makes them pleasant for an agent:
 
 <p align="center"><sub>Screenshots use made-up demo data.</sub></p>
 
+- **One-click agent setup:** connect Claude Code, Claude Desktop, Cursor or VS Code from inside the app.
 - **Issues:** sub-issues, labels, relations, comments, estimates, due dates and a full activity history.
 - **Board and list:** `⌘B` switches views. Drag cards between columns and watch them animate when an agent moves them.
 - **Keyboard first:** `⌘K` command palette, `S` `P` `A` `L` pickers, `g` chords, multi-select, and `?` for every shortcut.
@@ -229,7 +234,7 @@ The core, MCP server and UI logic are plain Swift packages with tests, and the S
 when testing by hand so your real tasks stay untouched.
 
 > [!WARNING]
-> Trackaro is at an early stage (0.1.0), and schema upgrades between versions aren't guaranteed yet. Keep a backup of
+> Trackaro is at an early stage (0.1.1), and schema upgrades between versions aren't guaranteed yet. Keep a backup of
 > your database.
 
 ## Roadmap
