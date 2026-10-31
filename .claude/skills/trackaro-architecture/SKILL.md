@@ -109,5 +109,5 @@ through MCP, driving the app with deep links, capturing only Trackaro's window, 
 
 Done: core store, MCP server (26 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
 layer, board, filters and saved views, projects and cycles pages, agent pings (channel push, hooks, watch), column
-automations, `.dmg` build. Not yet: Cursor setup and installed hooks, notes, an agent inbox, Developer ID signing
-and a downloadable release. `README.md` keeps the user-facing status list; update it with each feature.
+automations, `.dmg` build and GitHub release. Not yet: Cursor setup and installed hooks, notes, an agent inbox,
+Developer ID signing and notarization. `README.md` keeps the user-facing status list; update it with each feature.

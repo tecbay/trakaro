@@ -61,8 +61,19 @@ server:
 
 ## Install
 
-You need macOS 14 or later, Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-(`brew install xcodegen`). Build the disk image from source:
+You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.1.0.dmg)
+and drag Trackaro to Applications.
+
+The download isn't notarized yet, so macOS blocks it on first open. Allow it under **System Settings → Privacy &
+Security → Open Anyway**, or run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Trackaro.app
+```
+
+### Build from source
+
+You need Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`):
 
 ```bash
 git clone https://github.com/tecbay/trakaro.git
@@ -84,10 +95,8 @@ Drag Trackaro to Applications. The app is a universal binary for Apple Silicon a
 bundled inside it.
 
 > [!NOTE]
-> The script signs ad hoc by default, because the project has no Developer ID certificate yet. A copy you build
-> yourself opens normally. If you pass the `.dmg` to another Mac, macOS will block it on first open, and that person
-> has to allow it under **System Settings → Privacy & Security → Open Anyway**. To produce a signed, notarized build,
-> run the script with your own `SIGN_IDENTITY` and `NOTARY_PROFILE`; the top of
+> The script signs ad hoc by default, because the project has no Developer ID certificate yet. To produce a signed,
+> notarized build, run it with your own `SIGN_IDENTITY` and `NOTARY_PROFILE`; the top of
 > [`scripts/make-dmg.sh`](scripts/make-dmg.sh) shows how.
 
 ## Connect Claude
@@ -203,9 +212,9 @@ when testing by hand so your real tasks stay untouched.
 - [x] Native app with keyboard layer and undo
 - [x] Board, filters, saved views, projects and cycles
 - [x] Column automations and agent pings
-- [x] `.dmg` build
+- [x] `.dmg` build and downloadable release
 - [ ] Notes, local inbox and reminders
-- [ ] Developer ID signing and a downloadable release
+- [ ] Developer ID signing and notarization
 
 ## License
 
