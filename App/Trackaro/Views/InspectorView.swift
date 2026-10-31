@@ -203,6 +203,21 @@ private struct IssueInspector: View {
                     Text(issue.projectId.flatMap { snapshot?.projectsById[$0]?.name } ?? "None")
                 }
             }
+            if let projectId = issue.projectId {
+                let milestones = snapshot?.milestones.filter { $0.projectId == projectId } ?? []
+                if !milestones.isEmpty {
+                    PropertyRow("Milestone") {
+                        Menu {
+                            Button("No milestone") { model.setMilestone(nil, on: ids) }
+                            ForEach(milestones) { milestone in
+                                Button(milestone.name) { model.setMilestone(milestone.id, on: ids) }
+                            }
+                        } label: {
+                            Text(issue.milestoneId.flatMap { snapshot?.milestonesById[$0]?.name } ?? "None")
+                        }
+                    }
+                }
+            }
             PropertyRow("Cycle") {
                 Menu {
                     Button("No cycle") { model.setCycle(nil, on: ids) }

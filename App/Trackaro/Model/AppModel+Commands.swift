@@ -58,12 +58,15 @@ extension AppModel {
             !filter.isEmpty || textFilterVisible
         case .runAutomation:
             !targets.isEmpty && !automations.isEmpty
+        case .completeCycle:
+            openCycle.map { $0.completedAt == nil } ?? false
         case .revertView:
             isViewModified
         case .deleteView:
             savedView != nil
         case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
-             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations:
+             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations,
+             .goProjects, .goCycles, .newProject, .newCycle:
             true
         }
     }
@@ -83,6 +86,11 @@ extension AppModel {
         case .goIssues: goToTeam(.all)
         case .goActive: goToTeam(.active)
         case .goBacklog: goToTeam(.backlog)
+        case .goProjects: sidebarSelection = .projects
+        case .goCycles: goToCurrentCycle()
+        case .newProject: newProjectPresented = true
+        case .newCycle: createCycle()
+        case .completeCycle: if let cycle = openCycle { requestCompleteCycle(cycle) }
         case .automations: openAutomations()
         case .runAutomation: runAutomationNow()
         case .filter: overlay == .filter ? (overlay = nil) : openFilterPicker()
@@ -208,9 +216,11 @@ extension AppModel {
             OverlayItem(id: "command.\(command.rawValue)", title: command.definition.title, subtitle: command.definition.section,
                         symbol: "command", shortcut: command.definition.binding?.description, action: .command(command))
         }
-        var places: [SidebarItem] = snapshot?.savedViews.map { .view($0.id) } ?? []
+        var places: [SidebarItem] = [.projects] + (snapshot?.savedViews.map { .view($0.id) } ?? [])
+        places += snapshot?.projects.filter { $0.archivedAt == nil && $0.status.isActive }.map { .project($0.id) } ?? []
         for team in snapshot?.teams.filter({ $0.archivedAt == nil }) ?? [] {
             places += SidebarItem.TeamPage.allCases.map { .team(team.id, $0) }
+            places.append(.cycles(team.id))
         }
         commands += places.map { place in
             OverlayItem(id: "go.\(place)", title: "Go to \(place.title(in: snapshot))", subtitle: "Navigation",

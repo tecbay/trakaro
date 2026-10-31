@@ -39,6 +39,12 @@ final class AppModel {
     var filters: [String: IssueFilter] = AppModel.loadFilters()
     private(set) var detail: IssueDetail?
     private(set) var automations: [Automation] = []
+    /// Progress per project or cycle, for the overview pages.
+    private(set) var progressById: [String: IssueProgress] = [:]
+    private(set) var projectProgress: ProjectProgress?
+    private(set) var cycleProgress: CycleProgress?
+    /// When each completed issue of the open cycle page was completed, for its burn-up chart.
+    private(set) var cycleCompletions: [Date] = []
     private(set) var loadError: String?
 
     // MARK: Navigation and selection
@@ -90,6 +96,9 @@ final class AppModel {
     /// Bumped to move focus into the filter bar's text field.
     var filterFocusRequest = 0
     var automationsPresented = false
+    var newProjectPresented = false
+    /// The cycle waiting for the user to choose what happens to its unfinished issues.
+    var cycleToComplete: Cycle?
     /// The column the automations editor starts a new rule for, when opened from a board column.
     var automationPreset: String?
     var quickCreatePresented = false
@@ -158,7 +167,9 @@ final class AppModel {
             showError(error)
         }
         switch currentItem {
-        case let .team(id, _) where snapshot?.teamsById[id] == nil, let .view(id) where snapshot?.savedViewsById[id] == nil:
+        case let .team(id, _) where snapshot?.teamsById[id] == nil, let .view(id) where snapshot?.savedViewsById[id] == nil,
+             let .project(id) where snapshot?.projectsById[id] == nil, let .cycle(id) where snapshot?.cyclesById[id] == nil,
+             let .cycles(id) where snapshot?.teamsById[id] == nil:
             sidebarSelection = .myIssues
         default:
             break
@@ -175,7 +186,10 @@ final class AppModel {
             var notes: [String: String] = [:]
             var grouping = ListGrouping.state
             let filter = self.filter
-            let page = pageFilter(for: currentItem).applied(to: IssueQuery(order: .manual, limit: TrackaroStore.maxPageSize))
+            let page = pageQuery(for: currentItem)
+            projectProgress = nil
+            cycleProgress = nil
+            cycleCompletions = []
             switch currentItem {
             case .myIssues:
                 issues = try store.queryIssues(filter.applied(to: page)).issues
@@ -195,6 +209,22 @@ final class AppModel {
             case .view:
                 issues = try store.queryIssues(filter.applied(to: page)).issues
                 grouping = boardTeamId == nil ? .category : .state
+            case .projects:
+                issues = []
+                progressById = try store.projectsProgress()
+            case let .cycles(teamId):
+                issues = []
+                progressById = try store.cyclesProgress(teamId: teamId)
+            case let .project(id):
+                issues = try store.queryIssues(filter.applied(to: page)).issues
+                grouping = .category
+                projectProgress = try store.projectProgress(projectId: id)
+            case let .cycle(id):
+                issues = try store.queryIssues(filter.applied(to: page)).issues
+                let progress = try store.cycleProgress(cycleId: id)
+                cycleProgress = progress
+                cycleCompletions = try store.queryIssues(IssueQuery(stateCategories: [.completed], cycle: .anyOf([id]), limit: TrackaroStore.maxPageSize))
+                    .issues.compactMap(\.completedAt)
             }
             if notes.isEmpty {
                 let recent = Date().addingTimeInterval(-Self.recentAgentWindow)
@@ -277,6 +307,7 @@ final class AppModel {
     /// The one team whose workflow the board and the grouping follow, or nil when the list spans teams.
     var boardTeamId: String? {
         if let teamId = currentItem.teamId { return teamId }
+        if case let .cycle(id) = currentItem { return snapshot?.cyclesById[id]?.teamId }
         guard case .view = currentItem, let teams = filter.teamIds, teams.count == 1 else { return nil }
         return teams.first
     }

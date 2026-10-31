@@ -14,6 +14,8 @@ struct QuickCreateView: View {
     @State private var priority = Priority.none
     @State private var assigneeId: String?
     @State private var labelIds: Set<String> = []
+    @State private var projectId: String?
+    @State private var cycleId: String?
     @State private var createMore = false
     @FocusState private var titleFocused: Bool
 
@@ -72,6 +74,19 @@ struct QuickCreateView: View {
                     Label(assigneeId.flatMap { snapshot?.membersById[$0]?.name } ?? "Assignee", systemImage: "person.crop.circle")
                 }
                 Menu {
+                    Button("No project") { projectId = nil }
+                    ForEach(snapshot?.projects.filter { $0.archivedAt == nil && $0.status.isActive } ?? []) { project in
+                        Button(project.name) { projectId = project.id }
+                    }
+                } label: {
+                    Label(projectId.flatMap { snapshot?.projectsById[$0]?.name } ?? "Project", systemImage: "cube")
+                }
+                if let cycle = cycleId.flatMap({ snapshot?.cyclesById[$0] }), cycle.teamId == teamId {
+                    Label(CycleTiming.title(cycle), systemImage: "arrow.triangle.2.circlepath")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                Menu {
                     if labels.isEmpty { Text("No labels yet") }
                     ForEach(labels) { label in
                         Toggle(label.name, isOn: Binding(
@@ -106,6 +121,8 @@ struct QuickCreateView: View {
             teamId = preset?.teamId ?? model.defaultTeamId ?? ""
             stateId = preset?.id
             assigneeId = model.defaultAssigneeId
+            projectId = model.defaultProjectId
+            cycleId = model.defaultCycleId
             titleFocused = true
         }
         .onChange(of: teamId) { oldValue, _ in
@@ -118,7 +135,9 @@ struct QuickCreateView: View {
     private func create() {
         let input = NewIssue(
             teamId: teamId, title: title, description: description, stateId: stateId,
-            priority: priority, assigneeId: assigneeId, labelIds: Array(labelIds)
+            priority: priority, assigneeId: assigneeId, projectId: projectId,
+            cycleId: cycleId.flatMap { model.snapshot?.cyclesById[$0] }.flatMap { $0.teamId == teamId ? $0.id : nil },
+            labelIds: Array(labelIds)
         )
         guard model.createIssue(input) != nil else { return }
         if createMore {

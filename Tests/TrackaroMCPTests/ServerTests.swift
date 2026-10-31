@@ -281,6 +281,21 @@ struct PlanningResourcePromptTests {
         #expect(projects["projects"]?[0]?["milestones"]?.strings == ["Beta"])
         let inProject = try await harness.call("search_issues", ["project": "Mobile Launch"])
         #expect(inProject["count"]?.intValue == 1)
+
+        try await harness.call("update_issue", ["issue": "ENG-1", "state": "Done"])
+        try await harness.call("create_issue", ["title": "GA build", "project": "Mobile Launch"])
+        let updated = try await harness.call("update_project", [
+            "project": "mobile-launch", "status": "in_progress", "health": "at_risk", "lead": "self", "target_date": .null,
+        ])
+        #expect(updated["status"]?.stringValue == "in_progress")
+        #expect(updated["health"]?.stringValue == "at_risk")
+        #expect(updated["lead"]?.stringValue == "Claude Code")
+        #expect(updated["target_date"] == nil)
+        #expect(updated["percent_complete"]?.intValue == 50)
+        let listed = try await harness.call("list_projects")
+        #expect(listed["projects"]?[0]?["issues"]?.intValue == 2)
+        let wrong = try await harness.failure("update_project", ["project": "Mobile Launch", "health": "fine"])
+        #expect(wrong.contains("on_track"))
     }
 
     @Test func resourcesReadWorkspaceAndIssues() async throws {

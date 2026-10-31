@@ -5,7 +5,8 @@ import Foundation
 /// out of the overlay. A command without a binding is reachable from the palette.
 public enum AppCommand: String, CaseIterable, Sendable {
     case palette, shortcuts, newIssue, toggleLayout, toggleSidebar, toggleInspector, undo, redo
-    case goMyIssues, goAgentActivity, goIssues, goActive, goBacklog
+    case goMyIssues, goAgentActivity, goIssues, goActive, goBacklog, goProjects, goCycles
+    case newProject, newCycle, completeCycle
     case filter, searchInView, clearFilters, saveView, revertView, deleteView
     case automations, runAutomation
     case next, previous, extendDown, extendUp, toggleSelect, open, clearSelection
@@ -28,6 +29,11 @@ public enum AppCommand: String, CaseIterable, Sendable {
         case .goIssues: KeyCommand(rawValue, "Go to team issues", section: "Navigation", binding: "g i")
         case .goActive: KeyCommand(rawValue, "Go to active issues", section: "Navigation", binding: "g t")
         case .goBacklog: KeyCommand(rawValue, "Go to backlog", section: "Navigation", binding: "g b")
+        case .goProjects: KeyCommand(rawValue, "Go to projects", section: "Navigation", binding: "g p")
+        case .goCycles: KeyCommand(rawValue, "Go to the current cycle", section: "Navigation", binding: "g c")
+        case .newProject: KeyCommand(rawValue, "New project", section: "General", binding: nil)
+        case .newCycle: KeyCommand(rawValue, "New cycle", section: "General", binding: nil)
+        case .completeCycle: KeyCommand(rawValue, "Complete this cycle", section: "General", binding: nil)
 
         case .automations: KeyCommand(rawValue, "Column automations", section: "General", binding: nil)
         case .runAutomation: KeyCommand(rawValue, "Run this column's automation now", section: "Issue", binding: nil, scope: .list)

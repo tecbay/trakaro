@@ -51,6 +51,10 @@ extension AppModel {
         edit("Set project", on: ids) { _ in IssuePatch(projectId: projectId.map(FieldUpdate.set) ?? .clear) }
     }
 
+    func setMilestone(_ milestoneId: String?, on ids: [String]) {
+        edit("Set milestone", on: ids) { _ in IssuePatch(milestoneId: milestoneId.map(FieldUpdate.set) ?? .clear) }
+    }
+
     func setCycle(_ cycleId: String?, on ids: [String]) {
         edit("Set cycle", on: ids) { _ in IssuePatch(cycleId: cycleId.map(FieldUpdate.set) ?? .clear) }
     }
@@ -183,6 +187,6 @@ extension AppModel {
     }
 
     var defaultTeamId: String? {
-        currentItem.teamId ?? snapshot?.teams.first(where: { $0.archivedAt == nil })?.id
+        boardTeamId ?? snapshot?.teams.first(where: { $0.archivedAt == nil })?.id
     }
 }

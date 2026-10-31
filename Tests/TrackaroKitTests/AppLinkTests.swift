@@ -12,6 +12,10 @@ struct AppLinkTests {
         ("trackaro://team/ENG", .team(key: "ENG", page: nil)),
         ("trackaro://team/ENG/Active", .team(key: "ENG", page: "active")),
         ("trackaro://view/Ready%20for%20agent", .view("Ready for agent")),
+        ("trackaro://projects", .projects),
+        ("trackaro://project/mobile-launch", .project("mobile-launch")),
+        ("trackaro://cycles/ENG", .cycles(teamKey: "ENG")),
+        ("trackaro://cycle/ENG/Current", .cycle(teamKey: "ENG", cycle: "current")),
         ("trackaro://command/palette", .command(.palette)),
     ])
     func parses(text: String, expected: AppLink) throws {

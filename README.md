@@ -8,7 +8,7 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   activity history, projects, milestones, cycles, saved views, a change log and full-text search. Issue rules:
   `KEY-n` identifiers that are never reused, lifecycle timestamps, fractional ordering, sub-issues, inverse
   relations, compare-and-set updates, team moves that keep the old identifier working.
-- **Phase 2, MCP server (done).** `trackaro-mcp` exposes 25 tools, 3 resources and 3 prompts over stdio. Agents
+- **Phase 2, MCP server (done).** `trackaro-mcp` exposes 26 tools, 3 resources and 3 prompts over stdio. Agents
   use names (`ENG-42`, `"In Progress"`, `"me"`), every change is recorded under the agent's name, and the app
   shows agent edits live.
 - **Phase 3, core UI (done).** Sidebar (My issues, Agent activity, per-team Issues, Active, Backlog), a fast
@@ -22,6 +22,10 @@ A fast, local, keyboard-first task manager for macOS that coding agents can driv
   `/` filters by text, `⇧F` clears. `⌘S` saves the page plus its filters as a view in the sidebar, and edits to a
   view stay unsaved until you save or discard them. Agents see views in `get_workspace`, read them with
   `search_issues` `view`, and create them with `save_view` (for example a "Ready for agent" board).
+- **Projects and cycles (done).** A Projects page lists every project with health, target date and progress; a
+  project's page shows its issues with status, health and lead menus, a progress bar and milestones. Each team has
+  Cycles and Current cycle pages with dates, days left, scope and points, a burn-up chart, and Complete cycle,
+  which can move unfinished issues to the next cycle. `g p` opens projects, `g c` the current cycle.
 - **Column automations (done).** Right-click a board column, Automate this column, and pick a repository folder.
   When you move an issue into that column (or create one there), Trackaro runs `claude -p` in the folder with a
   prompt about the issue; Claude works through the Trackaro tools, comments and moves the card. Runs and their
@@ -75,7 +79,7 @@ picks up their changes within a third of a second.
 | Orientation | `get_workspace` |
 | Issues | `search_issues`, `get_issues`, `create_issue`, `create_sub_issues`, `update_issue`, `move_issue`, `bulk_update_issues`, `archive_issue` |
 | Conversation | `add_comment`, `list_comments`, `get_issue_history`, `set_relation`, `remove_relation`, `mark_duplicate` |
-| Planning | `list_projects`, `create_project`, `create_milestone`, `list_cycles`, `create_cycle`, `cycle_progress` |
+| Planning | `list_projects`, `create_project`, `update_project`, `create_milestone`, `list_cycles`, `create_cycle`, `cycle_progress` |
 | Views | `save_view`, `delete_view` (views are listed by `get_workspace`) |
 | Setup | `create_label`, `create_team` |
 
@@ -87,5 +91,5 @@ Prompts: `standup`, `triage`, `plan_work`.
 1. Foundation (done)
 2. MCP server (done)
 3. Core UI (done)
-4. Planning: board and filters with saved views (done); cycle and project pages next
+4. Planning: board, filters, saved views, projects and cycles (done)
 5. Notes, local inbox and reminders, release signing

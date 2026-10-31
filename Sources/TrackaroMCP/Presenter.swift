@@ -133,6 +133,16 @@ struct Presenter {
         return object.value
     }
 
+    func project(_ project: Project, progress: IssueProgress) -> Value {
+        guard case var .object(object) = self.project(project) else { return self.project(project) }
+        if progress.issueCount > 0 {
+            object["issues"] = .int(progress.issueCount)
+            object["completed"] = .int(progress.completedCount)
+            object["percent_complete"] = .int(Int((progress.fraction * 100).rounded()))
+        }
+        return .object(object)
+    }
+
     func project(_ project: Project) -> Value {
         var object = ObjectBuilder()
         object.set("name", project.name)

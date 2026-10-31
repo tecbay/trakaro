@@ -36,6 +36,20 @@ struct RootView: View {
         .sheet(isPresented: $model.automationsPresented) {
             AutomationsView()
         }
+        .sheet(isPresented: $model.newProjectPresented) {
+            NewProjectView()
+        }
+        .confirmationDialog(
+            "Complete \(model.cycleToComplete.map(CycleTiming.title) ?? "cycle")?",
+            isPresented: Binding(get: { model.cycleToComplete != nil }, set: { if !$0 { model.cycleToComplete = nil } }),
+            presenting: model.cycleToComplete
+        ) { cycle in
+            Button("Move unfinished issues to the next cycle") { model.completeCycle(cycle, moveUnfinished: true) }
+            Button("Leave them in this cycle") { model.completeCycle(cycle, moveUnfinished: false) }
+            Button("Cancel", role: .cancel) { model.cycleToComplete = nil }
+        } message: { cycle in
+            Text("\(model.unfinishedIssueIds(in: cycle.id).count) issues are not finished. Moving them creates the next cycle if there is none yet.")
+        }
         .onOpenURL { url in model.open(url) }
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
@@ -57,6 +71,14 @@ struct SidebarView: View {
                 }
                 .tag(SidebarItem.agentActivity)
             }
+            Section("Projects") {
+                Label("All projects", systemImage: SidebarItem.projects.symbol)
+                    .tag(SidebarItem.projects)
+                ForEach(model.snapshot?.projects.filter { $0.archivedAt == nil && $0.status.isActive } ?? []) { project in
+                    Label(project.name, systemImage: "cube")
+                        .tag(SidebarItem.project(project.id))
+                }
+            }
             if let views = model.snapshot?.savedViews, !views.isEmpty {
                 Section("Views") {
                     ForEach(views) { view in
@@ -74,6 +96,12 @@ struct SidebarView: View {
                         Label(page.title, systemImage: page.symbol)
                             .tag(SidebarItem.team(team.id, page))
                     }
+                    if let current = model.currentCycle(teamId: team.id) {
+                        Label("Current cycle", systemImage: SidebarItem.cycle(current.id).symbol)
+                            .tag(SidebarItem.cycle(current.id))
+                    }
+                    Label("Cycles", systemImage: SidebarItem.cycles(team.id).symbol)
+                        .tag(SidebarItem.cycles(team.id))
                 }
             }
         }
@@ -98,6 +126,10 @@ struct IssueListPane: View {
         Group {
             if let error = model.loadError {
                 ContentUnavailableView("Could not open the database", systemImage: "exclamationmark.triangle", description: Text(error))
+            } else if model.currentItem == .projects {
+                ProjectsOverview()
+            } else if case let .cycles(teamId) = model.currentItem {
+                CyclesOverview(teamId: teamId)
             } else if model.layout == .board, !model.columns.isEmpty {
                 BoardView()
             } else if model.rows.isEmpty, model.savedView == nil, !model.filter.isEmpty {
@@ -128,12 +160,35 @@ struct IssueListPane: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .top, spacing: 0) {
-            if model.filterBarVisible { FilterBar() }
+            VStack(spacing: 0) {
+                if let progress = model.projectProgress { ProjectHeader(progress: progress) }
+                if let progress = model.cycleProgress { CycleHeader(progress: progress) }
+                if model.filterBarVisible { FilterBar() }
+            }
         }
         .navigationTitle(model.currentItem.title(in: model.snapshot))
         .navigationSubtitle(model.rows.isEmpty ? "" : "\(model.issueCount) issues")
         .toolbar {
             ToolbarItemGroup {
+                if !model.currentItem.isOverview { listControls }
+                Button {
+                    model.perform(.palette)
+                } label: {
+                    Label("Command palette", systemImage: "command")
+                }
+                .help("Command palette (⌘K)")
+                Button {
+                    model.perform(.toggleInspector)
+                } label: {
+                    Label("Details", systemImage: "sidebar.right")
+                }
+                .help("Toggle details (])")
+            }
+        }
+    }
+
+    @ViewBuilder private var listControls: some View {
+        Group {
                 Picker("Layout", selection: Binding(
                     get: { model.layout },
                     set: { value in if value != model.layout { model.perform(.toggleLayout) } }
@@ -149,19 +204,6 @@ struct IssueListPane: View {
                     Label("Filter", systemImage: model.filter.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                 }
                 .help("Filter (F)")
-                Button {
-                    model.perform(.palette)
-                } label: {
-                    Label("Command palette", systemImage: "command")
-                }
-                .help("Command palette (⌘K)")
-                Button {
-                    model.perform(.toggleInspector)
-                } label: {
-                    Label("Details", systemImage: "sidebar.right")
-                }
-                .help("Toggle details (])")
-            }
         }
     }
 }

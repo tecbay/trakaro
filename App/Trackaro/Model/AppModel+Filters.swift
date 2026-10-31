@@ -25,7 +25,7 @@ extension AppModel {
         return edited != view.issueFilter
     }
 
-    var filterBarVisible: Bool { !filter.isEmpty || savedView != nil || textFilterVisible }
+    var filterBarVisible: Bool { !currentItem.isOverview && (!filter.isEmpty || savedView != nil || textFilterVisible) }
 
     var filterChips: [FilterChip] {
         guard let snapshot else { return [] }
@@ -44,9 +44,20 @@ extension AppModel {
             IssueFilter(stateCategories: StateCategory.allCases.filter(\.isOpen), assigneeIds: user.map { [$0.id] })
         case let .team(teamId, page):
             IssueFilter(teamIds: [teamId], stateCategories: page.categories)
-        case .agentActivity, .view:
+        case let .project(id):
+            IssueFilter(projectIds: [id])
+        case let .cycle(id):
+            IssueFilter(teamIds: snapshot?.cyclesById[id].map { [$0.teamId] })
+        case .agentActivity, .view, .projects, .cycles:
             IssueFilter()
         }
+    }
+
+    /// The query a page shows before its filter: the page filter, plus the cycle a cycle page is limited to.
+    func pageQuery(for item: SidebarItem) -> IssueQuery {
+        var query = pageFilter(for: item).applied(to: IssueQuery(order: .manual, limit: TrackaroStore.maxPageSize))
+        if case let .cycle(id) = item { query.cycle = .anyOf([id]) }
+        return query
     }
 
     // MARK: Editing the filter

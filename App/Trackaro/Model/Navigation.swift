@@ -9,6 +9,11 @@ enum SidebarItem: Hashable {
     case team(String, TeamPage)
     /// A saved view, by id.
     case view(String)
+    case projects
+    case project(String)
+    /// A team's cycles, by team id.
+    case cycles(String)
+    case cycle(String)
 
     enum TeamPage: String, CaseIterable, Hashable {
         case all, active, backlog
@@ -45,11 +50,26 @@ enum SidebarItem: Hashable {
         case .agentActivity: "agent-activity"
         case let .team(id, page): "team.\(id).\(page.rawValue)"
         case let .view(id): "view.\(id)"
+        case .projects: "projects"
+        case let .project(id): "project.\(id)"
+        case let .cycles(teamId): "cycles.\(teamId)"
+        case let .cycle(id): "cycle.\(id)"
         }
     }
 
     var teamId: String? {
-        if case let .team(id, _) = self { id } else { nil }
+        switch self {
+        case let .team(id, _), let .cycles(id): id
+        default: nil
+        }
+    }
+
+    /// Pages that show cards of projects or cycles rather than a list of issues.
+    var isOverview: Bool {
+        switch self {
+        case .projects, .cycles: true
+        default: false
+        }
     }
 
     func title(in snapshot: WorkspaceSnapshot?) -> String {
@@ -59,6 +79,10 @@ enum SidebarItem: Hashable {
         case let .team(id, page):
             "\(snapshot?.teamsById[id]?.name ?? "Team") · \(page.title)"
         case let .view(id): snapshot?.savedViewsById[id]?.name ?? "View"
+        case .projects: "Projects"
+        case let .project(id): snapshot?.projectsById[id]?.name ?? "Project"
+        case let .cycles(teamId): "\(snapshot?.teamsById[teamId]?.name ?? "Team") · Cycles"
+        case let .cycle(id): snapshot?.cyclesById[id].map(CycleTiming.title) ?? "Cycle"
         }
     }
 
@@ -68,6 +92,10 @@ enum SidebarItem: Hashable {
         case .agentActivity: "sparkles"
         case let .team(_, page): page.symbol
         case .view: "line.3.horizontal.decrease.circle"
+        case .projects: "cube.box"
+        case .project: "cube"
+        case .cycles: "arrow.triangle.2.circlepath"
+        case .cycle: "arrow.triangle.2.circlepath.circle"
         }
     }
 
@@ -79,6 +107,10 @@ enum SidebarItem: Hashable {
         case .team(_, .active): "Nothing in progress."
         case .team: "No issues yet. Press C to create one."
         case .view: "No issues match this view."
+        case .projects: "No projects yet."
+        case .project: "No issues in this project yet. Press C to create one."
+        case .cycles: "No cycles yet."
+        case .cycle: "No issues in this cycle yet. Press C to create one, or set Cycle in an issue's details."
         }
     }
 }

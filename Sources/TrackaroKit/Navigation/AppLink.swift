@@ -7,6 +7,8 @@ import Foundation
 ///     trackaro://agent-activity
 ///     trackaro://team/ENG            (or /ENG/active, /ENG/backlog)
 ///     trackaro://view/Ready%20for%20agent   (a saved view, by name or id)
+///     trackaro://projects            trackaro://project/mobile-launch   (slug, name or id)
+///     trackaro://cycles/ENG          trackaro://cycle/ENG/current       (or a cycle number)
 ///     trackaro://command/palette     (any AppCommand)
 public enum AppLink: Equatable, Sendable {
     case issue(String)
@@ -14,6 +16,10 @@ public enum AppLink: Equatable, Sendable {
     case agentActivity
     case team(key: String, page: String?)
     case view(String)
+    case projects
+    case project(String)
+    case cycles(teamKey: String)
+    case cycle(teamKey: String, cycle: String)
     case command(AppCommand)
 
     public static let scheme = "trackaro"
@@ -32,6 +38,14 @@ public enum AppLink: Equatable, Sendable {
             self = .team(key: parts[0], page: nil)
         case ("team", 2):
             self = .team(key: parts[0], page: parts[1].lowercased())
+        case ("projects", 0):
+            self = .projects
+        case ("project", 1):
+            self = .project(parts[0])
+        case ("cycles", 1):
+            self = .cycles(teamKey: parts[0])
+        case ("cycle", 2):
+            self = .cycle(teamKey: parts[0], cycle: parts[1].lowercased())
         case ("view", 1):
             self = .view(parts[0])
         case ("command", 1):
