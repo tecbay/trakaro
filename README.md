@@ -19,7 +19,10 @@ No account, no server, no cloud. Just one SQLite file on your Mac.
 
 <br>
 
-<img src="docs/images/board.png" alt="Trackaro board showing issues that Claude is working on" width="900">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
+  <img src="docs/images/hero-light.png" alt="Trackaro board showing the issues Claude and the founder are working on" width="900">
+</picture>
 
 </div>
 
@@ -161,9 +164,22 @@ What makes them pleasant for an agent:
 
 ## Features
 
-<div align="center">
-<img src="docs/images/list.png" alt="Trackaro issue list with the details panel open" width="900">
-</div>
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/details.png" alt="Issue list with the details panel showing Claude's activity and a comment"><p align="center"><b>Issues:</b> see everything Claude did and said</p></td>
+    <td width="50%"><img src="docs/images/activity.png" alt="Agent activity page listing the issues agents have changed"><p align="center"><b>Agent activity:</b> every issue your agents changed</p></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/projects.png" alt="Projects page with health, target dates and progress"><p align="center"><b>Projects:</b> health, targets and progress</p></td>
+    <td><img src="docs/images/project.png" alt="Project page with milestones and its issues"><p align="center"><b>Milestones:</b> one project at a glance</p></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/cycle.png" alt="Current cycle page with scope, points and a burn-up chart"><p align="center"><b>Cycles:</b> scope, points and burn-up</p></td>
+    <td><img src="docs/images/palette.png" alt="Command palette open over the issue list"><p align="center"><b>Command palette:</b> <code>⌘K</code> for everything</p></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Screenshots use made-up demo data.</sub></p>
 
 - **Issues:** sub-issues, labels, relations, comments, estimates, due dates and a full activity history.
 - **Board and list:** `⌘B` switches views. Drag cards between columns and watch them animate when an agent moves them.
