@@ -105,6 +105,7 @@ struct QuickCreateView: View {
             model.quickCreateStateId = nil
             teamId = preset?.teamId ?? model.defaultTeamId ?? ""
             stateId = preset?.id
+            assigneeId = model.defaultAssigneeId
             titleFocused = true
         }
         .onChange(of: teamId) { oldValue, _ in

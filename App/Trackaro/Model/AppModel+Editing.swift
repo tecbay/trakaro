@@ -139,10 +139,13 @@ extension AppModel {
         do {
             let issue = try store.createIssue(input, by: user.id)
             reloadAll()
-            if rows.contains(where: { $0.issueId == issue.id }) {
+            if rows.contains(where: { $0.issueId == issue.id }) || columns.contains(where: { $0.cards.contains { $0.id == issue.id } }) {
                 select([issue.id], cursor: issue.id)
+                showToast("Created \(issue.identifier)")
+            } else {
+                let home = SidebarItem.team(issue.teamId, .all).title(in: snapshot)
+                showToast("Created \(issue.identifier) in \(home). It doesn't match this list.")
             }
-            showToast("Created \(issue.identifier)")
             return issue
         } catch {
             showError(error)
@@ -171,6 +174,14 @@ extension AppModel {
     }
 
     /// The team new issues go to: the one being viewed, else the first.
+    /// Who a new issue is assigned to by default, so it shows up in the list it was created from: you in
+    /// My issues, or the one person a filter or view is narrowed to.
+    var defaultAssigneeId: String? {
+        if currentItem == .myIssues { return user?.id }
+        let people = filter.assigneeIds?.filter { $0 != IssueFilter.unset } ?? []
+        return people.count == 1 && filter.assigneeIds?.count == 1 ? people.first : nil
+    }
+
     var defaultTeamId: String? {
         currentItem.teamId ?? snapshot?.teams.first(where: { $0.archivedAt == nil })?.id
     }
