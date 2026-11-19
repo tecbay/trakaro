@@ -177,6 +177,7 @@ final class IssueCell: NSTableCellView {
     private let parentLabel = NSTextField(labelWithString: "")
     private let labelsLabel = NSTextField(labelWithString: "")
     private let dueLabel = NSTextField(labelWithString: "")
+    private let lockLabel = NSTextField(labelWithString: "")
     private let assigneeIcon = NSImageView()
     private let trailingLabel = NSTextField(labelWithString: "")
 
@@ -191,7 +192,7 @@ final class IssueCell: NSTableCellView {
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        for label in [parentLabel, labelsLabel, dueLabel, trailingLabel] {
+        for label in [parentLabel, labelsLabel, dueLabel, lockLabel, trailingLabel] {
             label.font = .systemFont(ofSize: 12)
             label.textColor = .secondaryLabelColor
             label.lineBreakMode = .byTruncatingTail
@@ -205,7 +206,7 @@ final class IssueCell: NSTableCellView {
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
-        let stack = NSStackView(views: [priorityIcon, identifierLabel, stateIcon, titleLabel, parentLabel, spacer, labelsLabel, dueLabel, assigneeIcon, trailingLabel])
+        let stack = NSStackView(views: [priorityIcon, identifierLabel, stateIcon, titleLabel, parentLabel, spacer, lockLabel, labelsLabel, dueLabel, assigneeIcon, trailingLabel])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 8
@@ -246,6 +247,12 @@ final class IssueCell: NSTableCellView {
         dueLabel.stringValue = item.dueDate.map { "Due \($0.description)" } ?? ""
         dueLabel.isHidden = item.dueDate == nil
 
+        lockLabel.attributedStringValue = Self.lockText(item)
+        lockLabel.isHidden = item.lockText == nil
+        lockLabel.toolTip = item.lock.map { lock in
+            (lock.held.map { "Holds lock \($0)" } + lock.waiting.map { "Waiting for lock \($0)" }).joined(separator: "\n")
+        }
+
         if let assignee = item.assignee {
             assigneeIcon.image = Symbols.image(item.assigneeIsAgent ? "sparkles" : "person.crop.circle.fill", size: 13)
             assigneeIcon.contentTintColor = item.assigneeIsAgent ? Theme.agent : .tertiaryLabelColor
@@ -257,6 +264,21 @@ final class IssueCell: NSTableCellView {
         trailingLabel.stringValue = item.note ?? item.assignee ?? ""
         trailingLabel.isHidden = trailingLabel.stringValue.isEmpty
         trailingLabel.textColor = item.note != nil ? Theme.agent : .secondaryLabelColor
+    }
+
+    private static func lockText(_ item: IssueRowItem) -> NSAttributedString {
+        guard let text = item.lockText else { return NSAttributedString() }
+        let symbol = item.lock?.held.isEmpty == false ? "lock.fill" : "hourglass"
+        let result = NSMutableAttributedString()
+        if let image = Symbols.image(symbol, size: 10) {
+            let attachment = NSTextAttachment()
+            attachment.image = image
+            result.append(NSAttributedString(attachment: attachment))
+            result.append(NSAttributedString(string: " "))
+        }
+        result.append(NSAttributedString(string: text))
+        result.addAttributes([.foregroundColor: Theme.accent, .font: NSFont.systemFont(ofSize: 12)], range: NSRange(location: 0, length: result.length))
+        return result
     }
 
     private static func labelText(_ labels: [LabelChip]) -> NSAttributedString {

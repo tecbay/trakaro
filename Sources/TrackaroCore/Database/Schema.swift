@@ -1,3 +1,4 @@
+import Foundation
 import GRDB
 
 enum Schema {
@@ -6,7 +7,78 @@ enum Schema {
         migrator.registerMigration("v1", migrate: createInitialSchema)
         migrator.registerMigration("v2-automations", migrate: createAutomations)
         migrator.registerMigration("v3-artifacts-and-restore", migrate: createArtifactsAndRestorePoint)
+        migrator.registerMigration("v4-locks", migrate: createLocks)
         return migrator
+    }
+
+    /// Shared-resource locks for chats working in parallel. Only adds tables. `kind` has no CHECK, so new event kinds
+    /// need no rebuild. Seeds the QA lanes and merge locks; conflicts are rows, so more can be added without code.
+    private static func createLocks(_ db: Database) throws {
+        try db.execute(sql: """
+            CREATE TABLE lockResource (
+                name TEXT PRIMARY KEY NOT NULL COLLATE NOCASE,
+                createdAt DATETIME NOT NULL
+            );
+
+            CREATE TABLE lockConflict (
+                resource TEXT NOT NULL REFERENCES lockResource(name) ON DELETE CASCADE,
+                other TEXT NOT NULL REFERENCES lockResource(name) ON DELETE CASCADE,
+                PRIMARY KEY (resource, other)
+            );
+
+            CREATE TABLE lockHold (
+                resource TEXT PRIMARY KEY NOT NULL REFERENCES lockResource(name) ON DELETE CASCADE,
+                issueId TEXT NOT NULL REFERENCES issue(id) ON DELETE CASCADE,
+                sessionId TEXT NOT NULL,
+                sessionTitle TEXT,
+                note TEXT,
+                processId INTEGER,
+                ttlSeconds INTEGER NOT NULL,
+                requestedAt DATETIME NOT NULL,
+                acquiredAt DATETIME NOT NULL,
+                heartbeatAt DATETIME NOT NULL
+            );
+            CREATE INDEX lockHold_session ON lockHold(sessionId);
+            CREATE INDEX lockHold_issue ON lockHold(issueId);
+
+            CREATE TABLE lockQueue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                resource TEXT NOT NULL REFERENCES lockResource(name) ON DELETE CASCADE,
+                issueId TEXT NOT NULL REFERENCES issue(id) ON DELETE CASCADE,
+                sessionId TEXT NOT NULL,
+                sessionTitle TEXT,
+                note TEXT,
+                processId INTEGER,
+                ttlSeconds INTEGER NOT NULL,
+                enqueuedAt DATETIME NOT NULL,
+                UNIQUE (resource, sessionId)
+            );
+            CREATE INDEX lockQueue_session ON lockQueue(sessionId);
+            CREATE INDEX lockQueue_issue ON lockQueue(issueId);
+
+            CREATE TABLE lockEvent (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                resource TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                issueId TEXT NOT NULL,
+                sessionId TEXT NOT NULL,
+                sessionTitle TEXT,
+                note TEXT,
+                targetSessionId TEXT,
+                detail TEXT,
+                at DATETIME NOT NULL
+            );
+            CREATE INDEX lockEvent_target ON lockEvent(targetSessionId, id);
+            CREATE INDEX lockEvent_resource ON lockEvent(resource, id);
+            """)
+        let now = Date()
+        for name in ["qa-web", "qa-ios", "qa-android", "merge mobicart-be", "merge mobicart-supernative",
+                     "merge mobicart-shopify", "merge wordpress-elementor"] {
+            try db.execute(sql: "INSERT INTO lockResource (name, createdAt) VALUES (?, ?)", arguments: [name, now])
+        }
+        for other in ["qa-ios", "qa-android"] {
+            try db.execute(sql: "INSERT INTO lockConflict (resource, other) VALUES ('qa-web', ?)", arguments: [other])
+        }
     }
 
     /// Only adds tables, so a `trackaro-mcp` from an older release keeps working on a database upgraded by a newer

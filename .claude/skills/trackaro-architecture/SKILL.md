@@ -65,6 +65,7 @@ Trackaro.app ──writes──┐                     ┌──writes── tra
 | Keyboard, palette, pickers | | `Keyboard/*`, `Search/FuzzyMatch.swift` | | `KeyboardController`, `AppModel+Commands`, `OverlayViews` |
 | Undo and redo | compare-and-set via `expecting:` | `Editing/EditHistory.swift` | | `AppModel+Editing` |
 | Deep links | | `Navigation/AppLink.swift` | | `AppModel+Links` |
+| Shared-resource locks | `Model/Lock.swift`, `TrackaroStore+Locks.swift` | `IssueRowItem.lock` | `Tools/LockTools.swift`, lock pump and sweep in `TrackaroMCPServer`, `release-session` in `main.swift` | `LocksView`, `AppModel+Locks` |
 
 ## Reference files
 
@@ -111,7 +112,7 @@ through MCP, driving the app with deep links, capturing only Trackaro's window, 
 
 ## Status
 
-Done: core store, MCP server (30 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
+Done: core store, MCP server (36 tools, 3 resources, 3 prompts), list and inspector UI, palette and keyboard
 layer, board, filters and saved views, projects and cycles pages, agent pings (channel push, hooks, watch), column
-automations, rich Markdown descriptions, project artifacts, backup and restore, `.dmg` build and GitHub release. Not yet: Cursor setup and installed hooks, notes, an agent inbox,
+automations, rich Markdown descriptions, project artifacts, backup and restore, shared-resource locks, `.dmg` build and GitHub release. Not yet: Cursor setup and installed hooks, notes, an agent inbox,
 Developer ID signing and notarization. `README.md` keeps the user-facing status list; update it with each feature.

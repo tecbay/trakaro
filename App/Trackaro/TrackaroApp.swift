@@ -50,6 +50,7 @@ struct TrackaroApp: App {
                 Button("Backlog") { model.perform(.goBacklog) }
                 Divider()
                 Button("Artifacts") { model.perform(.goArtifacts) }
+                Button("Locks") { model.perform(.goLocks) }
             }
             CommandGroup(replacing: .help) {
                 Button("Keyboard Shortcuts") { model.perform(.shortcuts) }

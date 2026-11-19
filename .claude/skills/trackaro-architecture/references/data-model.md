@@ -41,6 +41,9 @@ the backup API. Nothing swaps the file on disk.
 | `savedView` | `SavedView` | `filter` is `IssueFilter` JSON, `layout` list or board, `sortKey` orders the sidebar. Names unique ignoring case. |
 | `automation`, `automationRun` | `Automation`, `AutomationRun` | Column rules and their runs (v2). Runs keep a log file path and status. |
 | `artifact` | `ArtifactSummary`, `Artifact` | A project's file, in the database as a blob, up to 25 MB. Name unique per project ignoring case; saving the same name replaces it and bumps `version`. Soft delete via `deletedAt`. Kind comes from `mimeType`, which has no CHECK. |
+| `lockResource`, `lockConflict` | `LockResource`, `LockConflict` | Lock names (unique ignoring case) and pairs that can't be held together, applied both ways (v4). Seeded with the QA lanes and merge locks. |
+| `lockHold`, `lockQueue` | `LockHolder`, `LockWaiter` | One holder per resource; the queue's `id` grows, so ordering by it is first come, first served across resources. Both keep the chat's `sessionId`, `processId` and `ttlSeconds`. |
+| `lockEvent` | `LockEvent` | Lock history. `targetSessionId` is set on events a chat must hear: `granted` from the queue, `expired`, `force_released`. `kind` has no CHECK. |
 | `restorePoint` | none | One row after a restore: the feed head at that moment. `feed(after:)` moves a cursor before it, or past the head, to this point, so restored history is never reported as new. |
 | `changeLog` | `ChangeEntry` | Append-only, every write of every model. `seq` is the change cursor the app polls. |
 | `issueSearch` | FTS5 | External content over `issue` (identifier, title, description), kept in sync by triggers. |
@@ -50,6 +53,16 @@ the backup API. Nothing swaps the file on disk.
 `projectId`, `milestoneId`, `cycleId`, `assigneeId`, `creatorId`, `startedAt`, `completedAt`, `canceledAt`
 (all set by `StateTimestamps.entering`, never by hand), `stateEnteredAt`, `createdAt`, `updatedAt`, `archivedAt`,
 `version`.
+
+## Locks
+
+`TrackaroStore+Locks.swift`. `acquireLock(LockRequest)` returns `.granted` or `.queued(position:blockedBy:)` and is
+idempotent per chat. A lock is free when nothing that clashes (same name or a conflict) is held and nobody waits for
+anything that clashes. `promote` hands locks over in queue order after every release, leave, force release and
+expiry; a blocked waiter reserves its place so later waiters for clashing resources stay behind it. `expireLocks()`
+frees holders past `heartbeatAt + ttlSeconds` or whose `processId` is dead, and drops dead waiters; it checks with a
+read first, so a sweep with nothing to do never writes. Lock comments on the task's issue are written by a system
+member named "Locks", so `feed(memberKinds: [.user])` never reports them.
 
 ## Writing
 

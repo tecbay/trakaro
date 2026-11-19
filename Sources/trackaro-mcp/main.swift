@@ -22,6 +22,10 @@ let usage = """
       trackaro-mcp pending --state FILE [--format text|claude-stop|claude-prompt|cursor-stop] [--database PATH] [--all]
           Print what the user changed since the last call, in a hook's output format, and remember the position.
 
+      trackaro-mcp release-session [--session ID] [--database PATH]
+          Release every lock a chat holds and take it out of every queue. For a Claude Code SessionEnd hook: without
+          --session it reads session_id from the hook's JSON on stdin, then $CLAUDE_CODE_SESSION_ID.
+
       --all       Include changes made by agents, not only by the user.
       --database  SQLite file. Default: $TRACKARO_DATABASE, then ~/Library/Application Support/Trackaro/trackaro.sqlite
     """
@@ -36,7 +40,7 @@ func output(_ text: String) {
 }
 
 enum Mode {
-    case server, watch, pending
+    case server, watch, pending, releaseSession
 }
 
 var arguments = Array(CommandLine.arguments.dropFirst())
@@ -45,6 +49,7 @@ if let first = arguments.first, !first.hasPrefix("-") {
     switch first {
     case "watch": mode = .watch
     case "pending": mode = .pending
+    case "release-session": mode = .releaseSession
     default: fail("unknown command \(first)\n\(usage)")
     }
     arguments.removeFirst()
@@ -52,6 +57,10 @@ if let first = arguments.first, !first.hasPrefix("-") {
 
 var databasePath = ProcessInfo.processInfo.environment["TRACKARO_DATABASE"]
 var options = TrackaroMCPServer.Options()
+// Each chat starts its own server, so the chat's session id is in the environment. Locks are held under it.
+options.sessionId = ProcessInfo.processInfo.environment["CLAUDE_CODE_SESSION_ID"]
+options.processId = Int(ProcessInfo.processInfo.processIdentifier)
+var sessionArgument: String?
 var includeAgents = false
 var stateFile: String?
 var format = AgentFeed.Format.text
@@ -71,6 +80,9 @@ while let argument = remaining.next() {
         options.channel = true
     case "--all":
         includeAgents = true
+    case "--session":
+        guard let id = remaining.next() else { fail("--session needs a session id") }
+        sessionArgument = id
     case "--state":
         guard let path = remaining.next() else { fail("--state needs a file path") }
         stateFile = path
@@ -91,6 +103,14 @@ while let argument = remaining.next() {
     default:
         fail("unknown argument \(argument)\n\(usage)")
     }
+}
+
+/// The session id from a hook's JSON input, when stdin is not a terminal.
+func hookSessionId() -> String? {
+    guard isatty(FileHandle.standardInput.fileDescriptor) == 0 else { return nil }
+    let data = FileHandle.standardInput.readDataToEndOfFile()
+    guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+    return object["session_id"] as? String
 }
 
 func expand(_ path: String) -> URL {
@@ -115,6 +135,14 @@ do {
     case .pending:
         guard let stateFile else { fail("pending needs --state FILE to remember its position") }
         if let text = try feed.pending(stateFile: expand(stateFile), format: format) { output(text) }
+    case .releaseSession:
+        guard let session = sessionArgument ?? hookSessionId() ?? options.sessionId else {
+            fail("release-session needs --session ID, hook JSON with session_id on stdin, or $CLAUDE_CODE_SESSION_ID")
+        }
+        let result = try store.releaseLocks(forSession: session)
+        if !result.released.isEmpty || !result.left.isEmpty {
+            FileHandle.standardError.write(Data("trackaro-mcp: released \(result.released.count), left \(result.left.count) queue(s)\n".utf8))
+        }
     }
 } catch {
     fail(String(describing: error))

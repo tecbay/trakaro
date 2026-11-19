@@ -26,8 +26,8 @@ regenerate after adding or removing files). Not sandboxed, hardened runtime, ad-
 ## Pages (SidebarItem)
 
 `myIssues`, `agentActivity`, `team(teamId, .all | .active | .backlog)`, `view(savedViewId)`, `projects`,
-`project(id)`, `artifacts(projectId or nil)`, `cycles(teamId)`, `cycle(id)`. Each has a `storageKey` (for per-page layout and filter), `title`,
-`symbol` and `emptyMessage`. `isOverview` pages (`projects`, `cycles`, `artifacts`) show cards instead of an issue list and hide
+`project(id)`, `artifacts(projectId or nil)`, `cycles(teamId)`, `cycle(id)`, `locks`. Each has a `storageKey` (for per-page layout and filter), `title`,
+`symbol` and `emptyMessage`. `isOverview` pages (`projects`, `cycles`, `artifacts`, `locks`) show cards instead of an issue list and hide
 the filter bar and layout picker.
 
 To show issues, a page contributes `pageFilter(for:)` (an `IssueFilter`, also what "Save as view" captures) and
@@ -85,6 +85,11 @@ Rows note which agent changed an issue in the last 15 minutes (`recentAgentWindo
 - `ArtifactsView.swift`: `ArtifactsPage` is a list and a viewer by kind: Markdown, `SafeHTMLView` (scripts off, remote
   loads blocked), `PlainTextViewer`, image, `PDFViewer`, or save-only. The inspector is hidden on this page.
 - `BackupsView.swift`: back up, restore from a file, or restore an automatic copy.
+- `LocksView.swift`: `LocksPage` lists every lock with holder, timing, note and queue, refreshing every 15 s; "Force
+  release…" confirms then calls `AppModel.forceRelease` (no undo: the next chat may already be using it); "Add lock…"
+  defines a resource and its conflicts. Badges come from `AppModel.lockBadges` (rows and cards via
+  `IssueRowItem.lock`, the inspector header directly). `AppModel+Locks.sweepLocksIfDue` runs `expireLocks()` every
+  5 s from the poll loop. The inspector is hidden on this page.
 - `Design/Theme.swift`: colour tokens (`Theme.accent`, `agent`, `danger`, `high`, state and priority colours),
   `Symbols`, `RelativeTime`. No literal colours in views.
 
@@ -108,5 +113,5 @@ next launch.
 
 `AppLink` (Kit) parses and `AppModel+Links` acts: `issue/ENG-1`, `my-issues`, `agent-activity`,
 `team/ENG[/active|/backlog]`, `view/<name or id>`, `projects`, `project/<slug, name or id>`, `artifacts[/<project>]`,
-`artifact/<project>/<name>`, `cycles/ENG`,
+`artifact/<project>/<name>`, `locks`, `cycles/ENG`,
 `cycle/ENG/<number or current>`, `command/<AppCommand rawValue>`. Unknown links show an error toast.

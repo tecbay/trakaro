@@ -16,14 +16,14 @@ struct Harness {
         let description: String
     }
 
-    static func start(readOnly: Bool = false, clientName: String = "claude-code", agentName: String? = nil) async throws -> Harness {
+    static func start(readOnly: Bool = false, clientName: String = "claude-code", agentName: String? = nil, sessionId: String? = nil) async throws -> Harness {
         let store = try TrackaroStore.inMemory()
         let me = try store.localUser()
         try store.createTeam(key: "ENG", name: "Engineering", by: me.id)
         let (clientTransport, serverTransport) = await InMemoryTransport.createConnectedPair()
         let server = try await TrackaroMCPServer.start(
             store: store,
-            options: TrackaroMCPServer.Options(readOnly: readOnly, agentName: agentName),
+            options: TrackaroMCPServer.Options(readOnly: readOnly, agentName: agentName, sessionId: sessionId),
             transport: serverTransport
         )
         let client = Client(name: clientName, version: "1.0.0")

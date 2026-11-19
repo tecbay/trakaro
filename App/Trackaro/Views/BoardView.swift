@@ -211,6 +211,12 @@ struct BoardCard: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             }
+            if let lock = card.lockText {
+                Label(lock, systemImage: card.lock?.held.isEmpty == false ? "lock.fill" : "hourglass")
+                    .font(.caption)
+                    .foregroundStyle(Color.accentTheme)
+                    .lineLimit(1)
+            }
             if let note = card.note {
                 Label(note, systemImage: "sparkles")
                     .font(.caption)

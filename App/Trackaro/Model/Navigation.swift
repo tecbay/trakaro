@@ -16,6 +16,8 @@ enum SidebarItem: Hashable {
     /// A team's cycles, by team id.
     case cycles(String)
     case cycle(String)
+    /// Shared-resource locks held and waited for by chats.
+    case locks
 
     enum TeamPage: String, CaseIterable, Hashable {
         case all, active, backlog
@@ -57,6 +59,7 @@ enum SidebarItem: Hashable {
         case let .artifacts(id): "artifacts.\(id ?? "all")"
         case let .cycles(teamId): "cycles.\(teamId)"
         case let .cycle(id): "cycle.\(id)"
+        case .locks: "locks"
         }
     }
 
@@ -74,7 +77,7 @@ enum SidebarItem: Hashable {
     /// Pages that show cards of projects or cycles rather than a list of issues.
     var isOverview: Bool {
         switch self {
-        case .projects, .cycles, .artifacts: true
+        case .projects, .cycles, .artifacts, .locks: true
         default: false
         }
     }
@@ -92,6 +95,7 @@ enum SidebarItem: Hashable {
         case let .artifacts(id?): "\(snapshot?.projectsById[id]?.name ?? "Project") · Artifacts"
         case let .cycles(teamId): "\(snapshot?.teamsById[teamId]?.name ?? "Team") · Cycles"
         case let .cycle(id): snapshot?.cyclesById[id].map(CycleTiming.title) ?? "Cycle"
+        case .locks: "Locks"
         }
     }
 
@@ -106,6 +110,7 @@ enum SidebarItem: Hashable {
         case .artifacts: "doc.richtext"
         case .cycles: "arrow.triangle.2.circlepath"
         case .cycle: "arrow.triangle.2.circlepath.circle"
+        case .locks: "lock"
         }
     }
 
@@ -122,6 +127,7 @@ enum SidebarItem: Hashable {
         case .artifacts: "No artifacts yet. Ask your agent to save a spec, report or file to a project."
         case .cycles: "No cycles yet."
         case .cycle: "No issues in this cycle yet. Press C to create one, or set Cycle in an issue's details."
+        case .locks: "No locks yet."
         }
     }
 }

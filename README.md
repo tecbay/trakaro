@@ -153,7 +153,7 @@ To set up Cursor by hand, add this to `~/.cursor/mcp.json`:
 
 ## MCP tools
 
-30 tools, designed so an agent can use them without guessing and without wasting tokens.
+36 tools, designed so an agent can use them without guessing and without wasting tokens.
 
 | Area | Tools |
 | --- | --- |
@@ -163,6 +163,7 @@ To set up Cursor by hand, add this to `~/.cursor/mcp.json`:
 | **Planning** | `list_projects` `create_project` `update_project` `create_milestone` `list_cycles` `create_cycle` `cycle_progress` |
 | **Views** | `save_view` `delete_view` |
 | **Artifacts** | `save_artifact` `list_artifacts` `get_artifact` `delete_artifact` |
+| **Locks** | `acquire_lock` `release_lock` `heartbeat_lock` `lock_status` `leave_queue` `release_all_for_session` |
 | **Setup** | `create_label` `create_team` |
 
 **Resources:** `trackaro://workspace`, `trackaro://cycles/active`, `trackaro://issue/{identifier}`<br>
@@ -204,6 +205,8 @@ What makes them pleasant for an agent:
   it formatted, and edit it with a toolbar and a live preview.
 - **Project artifacts:** Claude saves specs, reports, HTML pages, images and PDFs to a project, and you browse them in
   the app. HTML shows with its scripts off and nothing loaded from the network.
+- **Shared-resource locks:** parallel chats take QA lanes and merge steps one at a time, in order. The next chat is told
+  when it's their turn, and a lock whose chat went quiet or closed is freed. See [locks](docs/locks.md).
 - **Backup and restore:** one file with everything in it, plus automatic daily copies.
 - **One-click agent setup:** connect Claude Code, Claude Desktop, Cursor or VS Code from inside the app.
 - **Issues:** sub-issues, labels, relations, comments, estimates, due dates and a full activity history.
@@ -268,6 +271,7 @@ when testing by hand so your real tasks stay untouched.
 - [x] Column automations and agent pings
 - [x] `.dmg` build and downloadable release
 - [x] Rich descriptions, project artifacts, backup and restore
+- [x] Shared-resource locks for parallel chats
 - [ ] Notes, local inbox and reminders
 - [ ] Developer ID signing and notarization
 

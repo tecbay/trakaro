@@ -31,6 +31,8 @@ extension AppModel {
             sidebarSelection = .project(project.id)
         case .artifacts(nil):
             sidebarSelection = .artifacts(nil)
+        case .locks:
+            sidebarSelection = .locks
         case let .artifacts(reference?):
             guard let project = project(matching: reference) else { return }
             sidebarSelection = .artifacts(project.id)

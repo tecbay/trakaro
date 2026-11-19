@@ -19,8 +19,9 @@ struct ServerSurfaceTests {
             #expect(tool.annotations.readOnlyHint != nil)
         }
         let readOnly = Set(tools.filter { $0.annotations.readOnlyHint == true }.map(\.name))
-        #expect(readOnly == ["get_workspace", "search_issues", "get_issues", "list_comments", "get_issue_history", "list_projects", "list_cycles", "cycle_progress", "list_artifacts", "get_artifact"])
+        #expect(readOnly == ["get_workspace", "search_issues", "get_issues", "list_comments", "get_issue_history", "list_projects", "list_cycles", "cycle_progress", "list_artifacts", "get_artifact", "lock_status"])
         #expect(tools.first { $0.name == "remove_relation" }?.annotations.destructiveHint == true)
+        #expect(tools.first { $0.name == "release_all_for_session" }?.annotations.destructiveHint == true)
     }
 
     @Test func instructionsPointAgentsAtGetWorkspace() async throws {

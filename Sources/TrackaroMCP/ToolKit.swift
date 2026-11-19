@@ -9,6 +9,10 @@ struct ToolContext: Sendable {
     let user: Member
     /// The connected agent. "self" in tool arguments, and the author of every write.
     let agent: Member
+    /// The chat this connection serves: its Claude Code session id when known, else one made up for this process.
+    var sessionId: String = ""
+    /// This server's process, recorded with locks so a chat that has gone away frees them.
+    var processId: Int?
 }
 
 struct ToolDefinition: Sendable {

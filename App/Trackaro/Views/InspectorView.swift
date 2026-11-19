@@ -87,6 +87,19 @@ private struct IssueInspector: View {
                 .font(.system(.callout, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+            if let lock = model.lockBadges[issue.id] {
+                ForEach(lock.held, id: \.self) { resource in
+                    Label(resource, systemImage: "lock.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color.accentTheme)
+                        .help("Holds lock \(resource)")
+                }
+                ForEach(lock.waiting, id: \.self) { resource in
+                    Label("Waiting for \(resource)", systemImage: "hourglass")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
             if detail.isBlocked {
                 Label("Blocked", systemImage: "hand.raised.fill")
                     .font(.caption.weight(.medium))

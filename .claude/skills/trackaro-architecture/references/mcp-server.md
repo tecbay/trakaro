@@ -15,10 +15,10 @@ session is recorded under that member. `ToolContext` carries `store`, `user` ("m
 `Instructions.text(readOnly:channel:)` is the server instructions string; it tells agents to call
 `get_workspace` first and how to report work.
 
-## Tools (30)
+## Tools (36)
 
 `TrackaroMCPServer.allTools` is `WorkspaceTools.all + IssueTools.all + ConversationTools.all + PlanningTools.all
-+ ViewTools.all + ArtifactTools.all`.
++ ViewTools.all + ArtifactTools.all + LockTools.all`.
 
 | Area | File | Tools |
 | --- | --- | --- |
@@ -27,11 +27,12 @@ session is recorded under that member. `ToolContext` carries `store`, `user` ("m
 | Conversation | `Tools/ConversationTools.swift` | `add_comment`, `list_comments`, `get_issue_history`, `set_relation`, `remove_relation` (destructive), `mark_duplicate` |
 | Planning | `Tools/PlanningTools.swift` | `list_projects` (with progress), `create_project`, `update_project`, `create_milestone`, `list_cycles`, `create_cycle`, `cycle_progress` |
 | Views | `Tools/ViewTools.swift` | `save_view` (upsert by name), `delete_view` (destructive) |
+| Locks | `Tools/LockTools.swift` | `acquire_lock`, `release_lock`, `heartbeat_lock`, `lock_status`, `leave_queue`, `release_all_for_session` (destructive). Each acts for this chat unless `session_id` is given. Full design: `docs/locks.md` |
 | Artifacts | `Tools/ArtifactTools.swift` | `save_artifact` (upsert by name; `content` or `file_path`), `list_artifacts`, `get_artifact` (binary only with `as_base64`), `delete_artifact` (destructive) |
 
 Read-only tools, pinned by `advertisesToolsWithAnnotationsAndStrictSchemas` in `ServerTests.swift`:
 `get_workspace`, `search_issues`, `get_issues`, `list_comments`, `get_issue_history`, `list_projects`,
-`list_cycles`, `cycle_progress`, `list_artifacts`, `get_artifact`. There is deliberately no automation tool, since a
+`list_cycles`, `cycle_progress`, `list_artifacts`, `get_artifact`, `lock_status`. There is deliberately no automation tool, since a
 rule runs a shell command, and no backup or restore tool, since a restore replaces everything.
 
 Resources (`Resources.swift`): `trackaro://workspace`, `trackaro://cycles/active`, template
@@ -59,6 +60,17 @@ Resources (`Resources.swift`): `trackaro://workspace`, `trackaro://cycles/active
 - `IssueTools.filterProperties` and `IssueTools.issueFilter(from:resolver:)` are shared by `search_issues` and
   `save_view`, so a saved view and a search take the same arguments.
 
+## Chat identity and lock events
+
+`Options.sessionId` is the chat this server serves; `main.swift` sets it from `CLAUDE_CODE_SESSION_ID`, which Claude
+Code gives each chat's server process, and `Options.processId` from its own pid. Without one, `Session` makes up an
+id per connection. `ToolContext.sessionId` and `processId` carry them to tools. At startup the server records its pid
+against the chat's existing locks (`adoptLocks`), so a reconnected chat keeps them.
+
+Every non-read-only server runs `expireLocks()` every `lockSweepInterval` (5 s). In channel mode, `startLockPump`
+reads `lockEvents(after:for: sessionId)` and pushes each one through `LockTools.message(for:store:)` with
+`meta.kind` `lock_granted`, `lock_expired` or `lock_force_released`. Only events addressed to this session are read.
+
 ## Agent pings
 
 - `AgentFeed` (`AgentFeed.swift`) turns `store.feed` events into lines such as
@@ -70,7 +82,8 @@ Resources (`Resources.swift`): `trackaro://workspace`, `trackaro://cycles/active
   excluding the session's own agent. Claude Code only listens with
   `claude --dangerously-load-development-channels server:trackaro` (research preview).
 - CLI (`Sources/trackaro-mcp/main.swift`): default server mode (`--database`, `--read-only`, `--agent-name`,
-  `--channel`); `watch [--all] [--interval]` prints lines for the Monitor tool; `pending --state FILE --format
+  `--channel`); `release-session [--session ID]` for a SessionEnd hook (reads `session_id` from stdin JSON);
+  `watch [--all] [--interval]` prints lines for the Monitor tool; `pending --state FILE --format
   text|claude-stop|claude-prompt|cursor-stop` for hooks (first run records the position and prints nothing).
 - Full research and setup: `docs/agent-pings.md`.
 

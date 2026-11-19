@@ -23,6 +23,15 @@ public struct IssueRowItem: Hashable, Sendable, Identifiable {
     public let dueDate: CalendarDate?
     /// Free text on the right edge, such as "Claude Code · 2 min ago" in the agent activity list.
     public let note: String?
+    /// Shared-resource locks the issue's chat holds or waits for.
+    public var lock: IssueLockBadge? = nil
+
+    /// "qa-web", or "waiting for qa-ios" when nothing is held yet. Nil when the issue has no lock.
+    public var lockText: String? {
+        guard let lock else { return nil }
+        if !lock.held.isEmpty { return lock.held.joined(separator: ", ") }
+        return lock.waiting.isEmpty ? nil : "waiting for \(lock.waiting.joined(separator: ", "))"
+    }
 }
 
 public struct GroupHeader: Hashable, Sendable {
@@ -52,7 +61,8 @@ public enum ListGrouping: Sendable {
 
 public enum IssueRowBuilder {
     public static func item(
-        _ issue: Issue, snapshot: WorkspaceSnapshot, labelIds: [String], parentIdentifier: String?, note: String? = nil
+        _ issue: Issue, snapshot: WorkspaceSnapshot, labelIds: [String], parentIdentifier: String?, note: String? = nil,
+        lock: IssueLockBadge? = nil
     ) -> IssueRowItem {
         let state = snapshot.statesById[issue.stateId]
         let assignee = issue.assigneeId.flatMap { snapshot.membersById[$0] }
@@ -72,17 +82,19 @@ public enum IssueRowBuilder {
             assigneeIsAgent: assignee?.kind == .agent,
             parentIdentifier: parentIdentifier,
             dueDate: issue.dueDate,
-            note: note
+            note: note,
+            lock: lock
         )
     }
 
     /// Rows for a list: group headers followed by their issues. Issues keep their incoming order within a group.
     public static func rows(
         _ issues: [Issue], snapshot: WorkspaceSnapshot, labelIds: [String: [String]],
-        parentIdentifiers: [String: String], grouping: ListGrouping, notes: [String: String] = [:]
+        parentIdentifiers: [String: String], grouping: ListGrouping, notes: [String: String] = [:], locks: [String: IssueLockBadge] = [:]
     ) -> [ListRow] {
         let items = issues.map {
-            item($0, snapshot: snapshot, labelIds: labelIds[$0.id] ?? [], parentIdentifier: $0.parentId.flatMap { parentIdentifiers[$0] }, note: notes[$0.id])
+            item($0, snapshot: snapshot, labelIds: labelIds[$0.id] ?? [], parentIdentifier: $0.parentId.flatMap { parentIdentifiers[$0] },
+                 note: notes[$0.id], lock: locks[$0.id])
         }
         switch grouping {
         case .none:

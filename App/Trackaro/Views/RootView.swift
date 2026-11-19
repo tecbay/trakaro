@@ -14,7 +14,7 @@ struct RootView: View {
             IssueListPane()
                 .inspector(isPresented: Binding(
                     // The artifacts page has its own viewer in that space.
-                    get: { model.inspectorPresented && !model.currentItem.isArtifacts },
+                    get: { model.inspectorPresented && !model.currentItem.isArtifacts && model.currentItem != .locks },
                     set: { model.inspectorPresented = $0 }
                 )) {
                     InspectorView()
@@ -83,6 +83,9 @@ struct SidebarView: View {
                     Image(systemName: "sparkles").foregroundStyle(Color.agent)
                 }
                 .tag(SidebarItem.agentActivity)
+                Label(SidebarItem.locks.title(in: model.snapshot), systemImage: SidebarItem.locks.symbol)
+                    .badge(model.heldLockCount)
+                    .tag(SidebarItem.locks)
             }
             Section("Projects") {
                 Label("All projects", systemImage: SidebarItem.projects.symbol)
@@ -156,6 +159,8 @@ struct IssueListPane: View {
                 ProjectsOverview()
             } else if case let .artifacts(projectId) = model.currentItem {
                 ArtifactsPage(projectId: projectId)
+            } else if model.currentItem == .locks {
+                LocksPage()
             } else if case let .cycles(teamId) = model.currentItem {
                 CyclesOverview(teamId: teamId)
             } else if model.layout == .board, !model.columns.isEmpty {

@@ -10,6 +10,7 @@ import Foundation
 ///     trackaro://projects            trackaro://project/mobile-launch   (slug, name or id)
 ///     trackaro://artifacts           trackaro://artifacts/mobile-launch  (one project's)
 ///     trackaro://artifact/mobile-launch/spec.md   (project slug, name or id, then artifact name)
+///     trackaro://locks               (shared-resource locks)
 ///     trackaro://cycles/ENG          trackaro://cycle/ENG/current       (or a cycle number)
 ///     trackaro://command/palette     (any AppCommand)
 public enum AppLink: Equatable, Sendable {
@@ -22,6 +23,7 @@ public enum AppLink: Equatable, Sendable {
     case project(String)
     case artifacts(project: String?)
     case artifact(project: String, name: String)
+    case locks
     case cycles(teamKey: String)
     case cycle(teamKey: String, cycle: String)
     case command(AppCommand)
@@ -50,6 +52,8 @@ public enum AppLink: Equatable, Sendable {
             self = .artifacts(project: nil)
         case ("artifacts", 1):
             self = .artifacts(project: parts[0])
+        case ("locks", 0):
+            self = .locks
         case ("artifact", 2):
             self = .artifact(project: parts[0], name: parts[1])
         case ("cycles", 1):

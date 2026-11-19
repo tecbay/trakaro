@@ -45,6 +45,7 @@ struct ArtifactLinkTests {
 
     @Test func artifactPages() throws {
         #expect(AppLink(url: try #require(URL(string: "trackaro://artifacts"))) == .artifacts(project: nil))
+        #expect(AppLink(url: try #require(URL(string: "trackaro://locks"))) == .locks)
         #expect(AppLink(url: try #require(URL(string: "trackaro://artifacts/launch"))) == .artifacts(project: "launch"))
     }
 }

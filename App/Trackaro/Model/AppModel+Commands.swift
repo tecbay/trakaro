@@ -65,7 +65,7 @@ extension AppModel {
         case .deleteView:
             savedView != nil
         case .palette, .shortcuts, .newIssue, .toggleLayout, .toggleSidebar, .toggleInspector,
-             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations, .connectAgent, .backups, .goArtifacts,
+             .goMyIssues, .goAgentActivity, .goIssues, .goActive, .goBacklog, .filter, .searchInView, .saveView, .automations, .connectAgent, .backups, .goArtifacts, .goLocks,
              .goProjects, .goCycles, .newProject, .newCycle:
             true
         }
@@ -96,6 +96,7 @@ extension AppModel {
         case .connectAgent: connectAgentPresented = true
         case .backups: backupsPresented = true
         case .goArtifacts: goToArtifacts()
+        case .goLocks: sidebarSelection = .locks
         case .filter: overlay == .filter ? (overlay = nil) : openFilterPicker()
         case .searchInView: focusFilterText()
         case .clearFilters: clearFilters()
@@ -219,7 +220,7 @@ extension AppModel {
             OverlayItem(id: "command.\(command.rawValue)", title: command.definition.title, subtitle: command.definition.section,
                         symbol: "command", shortcut: command.definition.binding?.description, action: .command(command))
         }
-        var places: [SidebarItem] = [.projects, .artifacts(nil)] + (snapshot?.savedViews.map { .view($0.id) } ?? [])
+        var places: [SidebarItem] = [.projects, .artifacts(nil), .locks] + (snapshot?.savedViews.map { .view($0.id) } ?? [])
         for project in snapshot?.projects.filter({ $0.archivedAt == nil && $0.status.isActive }) ?? [] {
             places += [.project(project.id), .artifacts(project.id)]
         }

@@ -51,4 +51,17 @@ struct IssueRowTests {
         #expect(item.stateName == "Backlog")
         #expect(item.note == "note")
     }
+
+    @Test func rowsCarryWhatLocksTheirIssueHoldsOrWaitsFor() throws {
+        let fixture = try KitFixture()
+        let store = fixture.store
+        let holding = try store.createIssue(NewIssue(teamId: fixture.team.id, title: "Holding"), by: fixture.me.id)
+        let waiting = try store.createIssue(NewIssue(teamId: fixture.team.id, title: "Waiting"), by: fixture.me.id)
+        _ = try store.acquireLock(LockRequest(resource: "qa-web", issue: holding.identifier, sessionId: "a"))
+        _ = try store.acquireLock(LockRequest(resource: "qa-ios", issue: waiting.identifier, sessionId: "b"))
+        let rows = IssueRowBuilder.rows([holding, waiting], snapshot: try store.snapshot(), labelIds: [:], parentIdentifiers: [:],
+                                        grouping: .none, locks: try store.issueLockBadges())
+        let items = rows.compactMap { row -> IssueRowItem? in if case let .issue(item) = row { item } else { nil } }
+        #expect(items.map(\.lockText) == ["qa-web", "waiting for qa-ios"])
+    }
 }

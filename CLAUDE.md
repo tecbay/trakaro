@@ -70,6 +70,9 @@ In zsh, `log` is a shell builtin. Read the app's logs with `/usr/bin/log stream 
   see it. Restored history is not news: `feed(after:)` starts from the restore point, so automations cannot fire on it.
 - **Artifact content stays out of listings and the change log.** Read and log `ArtifactSummary`; only
   `artifact(_:projectId:)` loads the bytes.
+- **Locks are one transaction each.** `TrackaroStore+Locks` takes, queues, hands over and expires locks inside a write
+  transaction, which SQLite makes exclusive across processes. Events a chat must hear carry `targetSessionId`, and a
+  server reads only its own chat's. Lock comments come from the system member "Locks" so they never ping agents.
 - **Two processes, one file.** The app and `trackaro-mcp` share the database in WAL mode with a busy timeout. The
   app notices other writers by polling `latestChangeSeq()`. Never cache data across that boundary.
 

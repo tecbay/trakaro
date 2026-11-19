@@ -48,6 +48,14 @@ final class AppModel {
     private(set) var loadError: String?
     /// The artifacts page's list, and the one open in its viewer with its content.
     private(set) var artifacts: [ArtifactSummary] = []
+    /// Every lock with its holder and queue, for the Locks page and the sidebar count.
+    private(set) var lockStates: [LockState] = []
+    /// What each issue holds or waits for, for badges in lists, on cards and in details.
+    private(set) var lockBadges: [String: IssueLockBadge] = [:]
+    var lastLockSweep = Date.distantPast
+    /// The lock waiting for the user to confirm taking it away from its chat.
+    var lockToForceRelease: LockState?
+    var newLockPresented = false
     private(set) var openArtifact: Artifact?
     /// How many artifacts the open project page has.
     private(set) var projectArtifactCount = 0
@@ -182,6 +190,8 @@ final class AppModel {
             seenChangeSeq = try store.latestChangeSeq()
             snapshot = try store.snapshot()
             automations = try store.automations()
+            lockStates = try store.lockStates()
+            lockBadges = try store.issueLockBadges()
         } catch {
             showError(error)
         }
@@ -247,6 +257,8 @@ final class AppModel {
                 if let selected = artifactSelection, !artifacts.contains(where: { $0.id == selected }) { artifactSelection = nil }
                 if artifactSelection == nil { artifactSelection = artifacts.first?.id }
                 loadOpenArtifact()
+            case .locks:
+                issues = []
             case let .cycle(id):
                 issues = try store.queryIssues(filter.applied(to: page)).issues
                 let progress = try store.cycleProgress(cycleId: id)
@@ -263,7 +275,7 @@ final class AppModel {
             let labelIds = try store.labelIds(forIssues: issues.map(\.id))
             let parents = try store.identifiers(forIssueIds: issues.compactMap(\.parentId))
             let rowNotes = currentItem == .agentActivity ? notes : [:]
-            let nextRows = IssueRowBuilder.rows(issues, snapshot: snapshot, labelIds: labelIds, parentIdentifiers: parents, grouping: grouping, notes: rowNotes)
+            let nextRows = IssueRowBuilder.rows(issues, snapshot: snapshot, labelIds: labelIds, parentIdentifiers: parents, grouping: grouping, notes: rowNotes, locks: lockBadges)
             let nextColumns = boardColumns(for: issues, snapshot: snapshot, labelIds: labelIds, parents: parents, notes: notes)
             let nextIds = layout == .board ? nextColumns.flatMap { $0.cards.map(\.id) } : nextRows.compactMap(\.issueId)
             if nextRows != rows || nextColumns != columns || nextIds != rowIds {
@@ -286,7 +298,7 @@ final class AppModel {
         guard layout == .board else { return [] }
         let items = issues.map {
             IssueRowBuilder.item($0, snapshot: snapshot, labelIds: labelIds[$0.id] ?? [],
-                                 parentIdentifier: $0.parentId.flatMap { parents[$0] }, note: notes[$0.id])
+                                 parentIdentifier: $0.parentId.flatMap { parents[$0] }, note: notes[$0.id], lock: lockBadges[$0.id])
         }
         if let teamId = boardTeamId {
             let shown = pageFilter(for: currentItem).narrowed(by: filter)
@@ -340,6 +352,7 @@ final class AppModel {
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.pollInterval)
                 await self?.runAutomations()
+                self?.sweepLocksIfDue()
                 self?.reloadIfChangedElsewhere()
             }
         }
