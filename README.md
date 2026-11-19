@@ -64,7 +64,7 @@ server:
 
 ## Install
 
-You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.2.1.dmg)
+You need macOS 14 or later. [Download the latest `.dmg`](https://github.com/tecbay/trakaro/releases/latest/download/Trackaro-0.3.0.dmg)
 and drag Trackaro to Applications.
 
 The download isn't notarized yet, so macOS blocks it on first open. Allow it under **System Settings → Privacy &
@@ -91,7 +91,7 @@ scripts/make-dmg.sh
 ```
 
 ```bash
-open dist/Trackaro-0.2.1.dmg
+open dist/Trackaro-0.3.0.dmg
 ```
 
 Drag Trackaro to Applications. The app is a universal binary for Apple Silicon and Intel, and the MCP server is
